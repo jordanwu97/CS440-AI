@@ -39,8 +39,8 @@ def bfs(maze):
     start = maze.getStart()
     end = maze.getObjectives()[0]
 
-    print ("start:", start)
-    print ("obj:", end)
+    # print ("start:", start)
+    # print ("obj:", end)
 
     backpath = {start: start}
     frontier = [start]
@@ -51,7 +51,7 @@ def bfs(maze):
         # pull 1 coordinate from frontier
         statesExplored += 1
         current = frontier.pop(0)
-        print (current)
+        # print (current)
         
         # check if end
         if current == end:
@@ -63,7 +63,7 @@ def bfs(maze):
                 current = backpath[current]
             path.insert(0, start)
 
-            print (path)
+            # print (path)
             return path, statesExplored
 
 
@@ -79,11 +79,42 @@ def bfs(maze):
 
     return [], 0
 
+statesExplored = 0
 
 def dfs(maze):
     # TODO: Write your code here
     # return path, num_states_explored
-    return [], 0
+
+    # initialization
+    start = maze.getStart()
+    end = maze.getObjectives()[0]
+
+    explored = set()
+    path = []
+    statesExplored = [0]
+
+    # use recursion to do dfs
+    def dfsHelper(current):
+
+        statesExplored[0] = statesExplored[0] + 1
+        explored.add(current)
+
+        if current == end:
+            path.append(current)
+            return True
+
+        for n in maze.getNeighbors(current[0], current[1]):
+            if n not in explored:
+                if dfsHelper(n):
+                    path.append(current)
+                    return True
+        
+        return False
+
+    dfsHelper(start)
+    path.reverse()
+
+    return path, statesExplored[0]
 
 
 def greedy(maze):
