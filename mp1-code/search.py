@@ -145,7 +145,7 @@ def astar(maze):
     start = maze.getStart()
     objectives = set(maze.getObjectives())
 
-    pathsets = []
+    totalPath = [start]
 
     backpath = {start: (start,0)}
 
@@ -157,7 +157,9 @@ def astar(maze):
         statesExplored += 1
 
         if current in objectives:
-            del objectives[current]
+            c = current
+            objectives.remove(current)
+            print ("found:", c, "left:", objectives)
             
             path = []
             
@@ -165,12 +167,21 @@ def astar(maze):
             while current != start:
                 path.append(current)
                 current = backpath[current][0]
-            path.append(start)
             path.reverse()
 
-            pathsets.append(path)
+            totalPath += path
 
-            return path, statesExplored
+            # reset search if reach objective
+            if len(objectives) > 0:
+                start = c
+                backpath.clear()
+                backpath[start] = (start,0)
+                frontier.clear()
+                heapq.heappush(frontier, (0,start))
+                continue
+            else:
+                print (totalPath)
+                return totalPath, statesExplored
         
         currentParent, currentCost = backpath[current]
 
