@@ -117,7 +117,6 @@ def comboSearch(maze, frontier):
     
     return [], 0
     
-
 def bfs(maze):
     # TODO: Write your code here
     # return path, num_states_explored
@@ -144,39 +143,47 @@ def astar(maze):
     # initialization
     frontier = []
     start = maze.getStart()
-    end = maze.getObjectives()[0]
+    objectives = set(maze.getObjectives())
+
+    pathsets = []
 
     backpath = {start: (start,0)}
-    
+
     heapq.heappush(frontier, (0,start))
     statesExplored = 0
 
     while len(frontier) > 0:
-        (cCost, cNode) = heapq.heappop(frontier)
+        current = heapq.heappop(frontier)[1]
         statesExplored += 1
 
-        if cNode == end:
+        if current in objectives:
+            del objectives[current]
+            
             path = []
             
             # reverse backpath
-            while cNode != start:
-                path.append(cNode)
-                cNode = backpath[cNode][0]
+            while current != start:
+                path.append(current)
+                current = backpath[current][0]
             path.append(start)
             path.reverse()
 
+            pathsets.append(path)
+
             return path, statesExplored
         
-        cNodeParent, cNodeCost = backpath[cNode]
+        currentParent, currentCost = backpath[current]
 
-        for n in maze.getNeighbors(cNode[0], cNode[1]):
-            if n in backpath.keys():
-                continue
+        for n in maze.getNeighbors(current[0], current[1]):
             
-            p = cNodeCost + 1
-            h = manhattan(n, end)
-            f = p + h
-            backpath[n] = (cNode, p)
-            heapq.heappush(frontier, (f, n))
+            g = currentCost + 1
+            h = min([manhattan(n, target) for target in objectives])
+            f = g + h
+
+            # replacement of shorter backpath
+            if n not in backpath.keys() or g < backpath[n][1]:
+                backpath[n] = (current, g)
+                heapq.heappush(frontier, (f, n))
+
 
     return [], 0
