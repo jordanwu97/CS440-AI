@@ -14,6 +14,8 @@ within this file -- the unrevised staff files will be used for all other
 files and classes when code is run, so be careful to not modify anything else.
 """
 
+import heapq
+# this is part of standard python lib?
 
 # Search should return the path and the number of states explored.
 # The path should be a list of tuples in the form (row, col) that correspond
@@ -30,28 +32,66 @@ def search(maze, searchMethod):
         "astar": astar,
     }.get(searchMethod)(maze)
 
+def manhattan(c1, c2):
+    return abs(c1[0] - c2[0]) + abs(c1[1] - c2[1])
 
-def bfs(maze):
-    # TODO: Write your code here
-    # return path, num_states_explored
+class GreedyQueue(object): 
+    def __init__(self, target):
+        self.target = target
+        self.heap = []
+    
+    def __len__(self):
+        return len(self.heap)
+  
+    # for inserting an element in the queue 
+    def insert(self, node): 
+        heapq.heappush(self.heap, (manhattan(node,self.target), node))
+  
+    # for popping an element based on Priority 
+    def pop(self):
+        return heapq.heappop(self.heap)[1]
+        
+class FIFO(object):
+    def __init__(self):
+        self.queue = []
+
+    def __len__(self):
+        return len(self.queue)
+    
+    def pop(self):
+        return self.queue.pop(0)
+    
+    def insert(self, node):
+        self.queue.append(node)
+
+class LIFO(object):
+    def __init__(self):
+        self.queue = []
+
+    def __len__(self):
+        return len(self.queue)
+    
+    def pop(self):
+        return self.queue.pop()
+    
+    def insert(self, node):
+        self.queue.append(node)
+
+# since all search mechanics are the same, changing the frontier datastructure type is sufficient
+def comboSearch(maze, frontier):
 
     # initialization
     start = maze.getStart()
     end = maze.getObjectives()[0]
 
-    # print ("start:", start)
-    # print ("obj:", end)
-
     backpath = {start: start}
-    frontier = [start]
+    frontier.insert(start)
     statesExplored = 0
 
-    # BFS loop
-    while (len(frontier) > 0):
+    while len(frontier) > 0:
         # pull 1 coordinate from frontier
         statesExplored += 1
-        current = frontier.pop(0)
-        # print (current)
+        current = frontier.pop()
         
         # check if end
         if current == end:
@@ -59,71 +99,84 @@ def bfs(maze):
             
             # reverse backpath
             while current != start:
-                path.insert(0, current)
+                path.append(current)
                 current = backpath[current]
-            path.insert(0, start)
+            path.append(start)
+            path.reverse()
 
-            # print (path)
             return path, statesExplored
 
 
         # loop through neighbors
-        neighbors = maze.getNeighbors(current[0], current[1])
-        for n in neighbors:
+        for n in maze.getNeighbors(current[0], current[1]):
             # ignore those already explored, since they already have the shortest backpath
             if n in backpath.keys():
                 continue
             backpath[n] = current
-            frontier.append(n)
-
-
+            frontier.insert(n)
+    
     return [], 0
+    
 
-statesExplored = 0
+def bfs(maze):
+    # TODO: Write your code here
+    # return path, num_states_explored
+
+    return comboSearch(maze, FIFO())
 
 def dfs(maze):
     # TODO: Write your code here
     # return path, num_states_explored
 
-    # initialization
-    start = maze.getStart()
-    end = maze.getObjectives()[0]
-
-    explored = set()
-    path = []
-    statesExplored = [0]
-
-    # use recursion to do dfs
-    def dfsHelper(current):
-
-        statesExplored[0] = statesExplored[0] + 1
-        explored.add(current)
-
-        if current == end:
-            path.append(current)
-            return True
-
-        for n in maze.getNeighbors(current[0], current[1]):
-            if n not in explored:
-                if dfsHelper(n):
-                    path.append(current)
-                    return True
-        
-        return False
-
-    dfsHelper(start)
-    path.reverse()
-
-    return path, statesExplored[0]
-
+    return comboSearch(maze, LIFO())
 
 def greedy(maze):
     # TODO: Write your code here
     # return path, num_states_explored
-    return [], 0
+    
+    return comboSearch(maze, GreedyQueue(maze.getObjectives()[0]))
 
 
 def astar(maze):
     # TODO: Write your code here
     # return path, num_states_explored
+
+    # initialization
+    frontier = []
+    start = maze.getStart()
+    end = maze.getObjectives()[0]
+
+    backpath = {start: (start,0)}
+    
+    heapq.heappush(frontier, (0,start))
+    statesExplored = 0
+
+    while len(frontier) > 0:
+        (cCost, cNode) = heapq.heappop(frontier)
+        statesExplored += 1
+
+        if cNode == end:
+            path = []
+            
+            # reverse backpath
+            while cNode != start:
+                path.append(cNode)
+                cNode = backpath[cNode][0]
+            path.append(start)
+            path.reverse()
+
+            return path, statesExplored
+        
+        cNodeParent, cNodeCost = backpath[cNode]
+
+        for n in maze.getNeighbors(cNode[0], cNode[1]):
+            if n in backpath.keys():
+                continue
+            
+            p = cNodeCost + 1
+            h = manhattan(n, end)
+            f = p + h
+            backpath[n] = (cNode, p)
+            heapq.heappush(frontier, (f, n))
+
     return [], 0
