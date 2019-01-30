@@ -15,6 +15,7 @@ files and classes when code is run, so be careful to not modify anything else.
 """
 
 import heapq
+from time import sleep
 # this is part of standard python lib?
 
 # Search should return the path and the number of states explored.
@@ -31,6 +32,26 @@ def search(maze, searchMethod):
         "greedy": greedy,
         "astar": astar,
     }.get(searchMethod)(maze)
+
+# Calculate estimated MST of list of unvisited nodes
+# Will always be less than true MST because using manhattan distance between vertices
+def MST(nodes):
+
+    totalCost = 0
+    untouched = set(nodes)
+    
+    current = nodes[0]
+    untouched.remove(current)
+
+    # prims algorithm
+    for i in range(len(nodes) - 1):
+        # choose neighbor based on minimum manhattan distance
+        minDist, current = min([(manhattan(current,neighbor), neighbor) for neighbor in nodes if neighbor in untouched])
+        untouched.remove(current)
+        totalCost += minDist
+    
+    return totalCost
+        
 
 # f = g + min(h)
 def AStarHeuristics(g,hs):
@@ -53,6 +74,9 @@ class PriorityQueue(object):
     
     def __len__(self):
         return len(self.heap)
+
+    def __str__(self):
+        return str(self.heap)
   
     # for inserting an element in the queue with specified priority value fval
     def insert(self, fval, node): 
@@ -104,7 +128,9 @@ def comboSearch(maze, frontier, heuristic):
 
     # initialization
     start = maze.getStart()
-    objectives = set(maze.getObjectives())
+    remainingObjectives = set(maze.getObjectives())
+
+    # print (MST(list(remainingObjectives)))
 
     # explored mappings for finding parent and cost
     exploredParent = {start: start}
@@ -122,22 +148,23 @@ def comboSearch(maze, frontier, heuristic):
         statesExplored += 1
         
         # check if hit obj
-        if current in objectives:
+        if current in remainingObjectives:
 
-            objectives.remove(current)
+            remainingObjectives.remove(current)
 
-            # tpath.append(current)
+            tpath.append(current)
 
             temp = current
             # reverse from temp to start to get path
             arr = []
             while temp != start:
-                arr.insert(0,temp)
+                # arr.insert(0,temp)
                 temp = exploredParent[temp]
 
             tpath = tpath + arr
             
-            if len(objectives) == 0:
+            if len(remainingObjectives) == 0:
+                print (tpath)
                 return tpath, statesExplored
 
             # reset and start from current
@@ -155,14 +182,13 @@ def comboSearch(maze, frontier, heuristic):
 
             # calculate heuristics and apply heuristic function
             g = exploredCost[current] + 1
-            h = [manhattan(n, target) for target in objectives]
+            h = [manhattan(n, target) for target in remainingObjectives]
             f = heuristic(g, h)
 
             # replacement with shorter backpath
             if n not in exploredCost.keys() or g < exploredCost[n]:
                 exploredParent[n], exploredCost[n] = current, g
                 frontier.insert(f, n)
-
     
     return [], 0
     
