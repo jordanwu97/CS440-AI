@@ -130,9 +130,12 @@ def comboSearch(maze, frontier, heuristic):
 
             temp = current
             # reverse from temp to start to get path
+            arr = []
             while temp != start:
-                tpath.insert(1,temp)
+                arr.insert(0,temp)
                 temp = exploredParent[temp]
+
+            tpath = tpath + arr
             
             if len(objectives) == 0:
                 return tpath, statesExplored
