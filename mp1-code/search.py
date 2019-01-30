@@ -32,25 +32,40 @@ def search(maze, searchMethod):
         "astar": astar,
     }.get(searchMethod)(maze)
 
+# f = g + min(h)
+def AStarHeuristics(g,hs):
+    return g + min(hs)
+
+# f = min(h)
+def GreedyHeuristics(g,hs):
+    return min(hs)
+
+def NoHeuristics(g,hs):
+    return 0
+
 def manhattan(c1, c2):
     return abs(c1[0] - c2[0]) + abs(c1[1] - c2[1])
 
-class GreedyQueue(object): 
-    def __init__(self, target):
-        self.target = target
+# Priority Queue for Greedy and AStar, fval used
+class PriorityQueue(object): 
+    def __init__(self):
         self.heap = []
     
     def __len__(self):
         return len(self.heap)
   
-    # for inserting an element in the queue 
-    def insert(self, node): 
-        heapq.heappush(self.heap, (manhattan(node,self.target), node))
+    # for inserting an element in the queue with specified priority value fval
+    def insert(self, fval, node): 
+        heapq.heappush(self.heap, (fval, node))
   
     # for popping an element based on Priority 
     def pop(self):
         return heapq.heappop(self.heap)[1]
-        
+
+    def clear(self):
+        self.heap.clear()
+
+# FIFO QUEUE for BFS, fval ignored
 class FIFO(object):
     def __init__(self):
         self.queue = []
@@ -61,59 +76,90 @@ class FIFO(object):
     def pop(self):
         return self.queue.pop(0)
     
-    def insert(self, node):
+    def insert(self, fval, node):
         self.queue.append(node)
 
+    def clear(self):
+        self.queue.clear()
+
+# LIFO QUEUE for BFS,  fval ignored
 class LIFO(object):
     def __init__(self):
-        self.queue = []
+        self.stack = []
 
     def __len__(self):
-        return len(self.queue)
+        return len(self.stack)
     
     def pop(self):
-        return self.queue.pop()
+        return self.stack.pop()
     
-    def insert(self, node):
-        self.queue.append(node)
+    def insert(self, fval, node):
+        self.stack.append(node)
+    
+    def clear(self):
+        self.stack.clear()
 
 # since all search mechanics are the same, changing the frontier datastructure type is sufficient
-def comboSearch(maze, frontier):
+def comboSearch(maze, frontier, heuristic):
 
     # initialization
     start = maze.getStart()
-    end = maze.getObjectives()[0]
+    objectives = set(maze.getObjectives())
 
-    backpath = {start: start}
-    frontier.insert(start)
+    # explored mappings for finding parent and cost
+    exploredParent = {start: start}
+    exploredCost = {start: 0}
     statesExplored = 0
+
+    # add start
+    frontier.insert(0, start)
+
+    tpath = [start]
 
     while len(frontier) > 0:
         # pull 1 coordinate from frontier
-        statesExplored += 1
         current = frontier.pop()
+        statesExplored += 1
         
-        # check if end
-        if current == end:
-            path = []
-            
-            # reverse backpath
-            while current != start:
-                path.append(current)
-                current = backpath[current]
-            path.append(start)
-            path.reverse()
+        # check if hit obj
+        if current in objectives:
 
-            return path, statesExplored
+            objectives.remove(current)
+
+            tpath.append(current)
+
+            temp = current
+            # reverse from temp to start to get path
+            while temp != start:
+                # tpath.append(temp)
+                temp = exploredParent[temp]
+            
+            if len(objectives) == 0:
+                return tpath, statesExplored
+
+            # reset and start from current
+            start = current
+            exploredParent.clear()
+            exploredParent[start] = start
+            exploredCost.clear()
+            exploredCost[start] = 0
+            frontier.clear()
+            frontier.insert(0, start)
 
 
         # loop through neighbors
         for n in maze.getNeighbors(current[0], current[1]):
-            # ignore those already explored, since they already have the shortest backpath
-            if n in backpath.keys():
-                continue
-            backpath[n] = current
-            frontier.insert(n)
+
+            # calculate heuristics and apply heuristic function
+            g = exploredCost[current] + 1
+            h = [manhattan(n, target) for target in objectives]
+            f = heuristic(g, h)
+
+            # replacement with shorter backpath
+            if n not in exploredCost.keys() or g < exploredCost[n]:
+                exploredParent[n], exploredCost[n] = current, g
+                frontier.insert(f, n)
+
     
     return [], 0
     
@@ -121,80 +167,24 @@ def bfs(maze):
     # TODO: Write your code here
     # return path, num_states_explored
 
-    return comboSearch(maze, FIFO())
+    return comboSearch(maze, FIFO(), NoHeuristics)
 
 def dfs(maze):
     # TODO: Write your code here
     # return path, num_states_explored
 
-    return comboSearch(maze, LIFO())
+    return comboSearch(maze, LIFO(), NoHeuristics)
 
 def greedy(maze):
     # TODO: Write your code here
     # return path, num_states_explored
     
-    return comboSearch(maze, GreedyQueue(maze.getObjectives()[0]))
+    return comboSearch(maze, PriorityQueue(), GreedyHeuristics)
 
 
 def astar(maze):
+
     # TODO: Write your code here
     # return path, num_states_explored
 
-    # initialization
-    frontier = []
-    start = maze.getStart()
-    objectives = set(maze.getObjectives())
-
-    totalPath = [start]
-
-    backpath = {start: (start,0)}
-
-    heapq.heappush(frontier, (0,start))
-    statesExplored = 0
-
-    while len(frontier) > 0:
-        current = heapq.heappop(frontier)[1]
-        statesExplored += 1
-
-        if current in objectives:
-            c = current
-            objectives.remove(current)
-            print ("found:", c, "left:", objectives)
-            
-            path = []
-            
-            # reverse backpath
-            while current != start:
-                path.append(current)
-                current = backpath[current][0]
-            path.reverse()
-
-            totalPath += path
-
-            # reset search if reach objective
-            if len(objectives) > 0:
-                start = c
-                backpath.clear()
-                backpath[start] = (start,0)
-                frontier.clear()
-                heapq.heappush(frontier, (0,start))
-                continue
-            else:
-                print (totalPath)
-                return totalPath, statesExplored
-        
-        currentParent, currentCost = backpath[current]
-
-        for n in maze.getNeighbors(current[0], current[1]):
-            
-            g = currentCost + 1
-            h = min([manhattan(n, target) for target in objectives])
-            f = g + h
-
-            # replacement of shorter backpath
-            if n not in backpath.keys() or g < backpath[n][1]:
-                backpath[n] = (current, g)
-                heapq.heappush(frontier, (f, n))
-
-
-    return [], 0
+    return comboSearch(maze, PriorityQueue(), AStarHeuristics)
