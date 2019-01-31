@@ -15,7 +15,7 @@ files and classes when code is run, so be careful to not modify anything else.
 """
 
 import heapq
-from time import sleep
+from time import time
 # this is part of standard python lib?
 
 # Search should return the path and the number of states explored.
@@ -33,9 +33,15 @@ def search(maze, searchMethod):
         "astar": astar,
     }.get(searchMethod)(maze)
 
+# HEURISTIC FOR MULTI DOT
+# h = est2nearest + cost(MST of unvisited)
+
 # Calculate estimated MST of list of unvisited nodes
 # Will always be less than true MST because using manhattan distance between vertices
-def MST(nodes):
+def MSTcost(nodes):
+
+    if len(nodes) < 1:
+        return 0
 
     totalCost = 0
     untouched = set(nodes)
@@ -52,143 +58,101 @@ def MST(nodes):
     
     return totalCost
         
-
-# f = g + min(h)
-def AStarHeuristics(g,hs):
-    return g + min(hs)
-
-# f = min(h)
-def GreedyHeuristics(g,hs):
-    return min(hs)
-
-def NoHeuristics(g,hs):
-    return 0
-
-def manhattan(c1, c2):
-    return abs(c1[0] - c2[0]) + abs(c1[1] - c2[1])
-
-# Priority Queue for Greedy and AStar, fval used
-class PriorityQueue(object): 
-    def __init__(self):
-        self.heap = []
-    
-    def __len__(self):
-        return len(self.heap)
+class State(object):
+    def __init__(self, coord, parent, gVal, hVal, fVal, MST, unvisitedObjs):
+        self.coord = coord
+        self.parent = parent
+        self.gVal = gVal
+        self.hVal = hVal
+        self.fVal = fVal
+        self.MST = MST
+        self.unvisitedObjs = unvisitedObjs
+        self.hashval = hash(((self.coord), str(unvisitedObjs)))
 
     def __str__(self):
-        return str(self.heap)
-  
-    # for inserting an element in the queue with specified priority value fval
-    def insert(self, fval, node): 
-        heapq.heappush(self.heap, (fval, node))
-  
-    # for popping an element based on Priority 
-    def pop(self):
-        return heapq.heappop(self.heap)[1]
-
-    def clear(self):
-        self.heap.clear()
-
-# FIFO QUEUE for BFS, fval ignored
-class FIFO(object):
-    def __init__(self):
-        self.queue = []
-
-    def __len__(self):
-        return len(self.queue)
+        if self.parent != None:
+            return "coord: " + str(self.coord) + "\tparent: " + str(self.parent.coord) + "\tunvisitedObjs: " + str(self.unvisitedObjs)
+        return "coord: " + str(self.coord) + "\tparent: None" + "\tunvisitedObjs: " + str(self.unvisitedObjs)
     
-    def pop(self):
-        return self.queue.pop(0)
-    
-    def insert(self, fval, node):
-        self.queue.append(node)
+    def __hash__(self):
+        return self.hashval
 
-    def clear(self):
-        self.queue.clear()
+    def __lt__(self, other):
+        return self.fVal < other.fVal
 
-# LIFO QUEUE for BFS,  fval ignored
-class LIFO(object):
-    def __init__(self):
-        self.stack = []
+    def newSimpleChild(self, coord, gVal, hVal, fVal):
+        return State(coord, self, gVal, hVal, fVal, self.MST, self.unvisitedObjs)
 
-    def __len__(self):
-        return len(self.stack)
+    def update(self, MST, unvisitedObjs):
+        self.MST = MST
+        self.unvisitedObjs = unvisitedObjs
+        self.hashval = hash(((self.coord), str(unvisitedObjs)))
     
-    def pop(self):
-        return self.stack.pop()
-    
-    def insert(self, fval, node):
-        self.stack.append(node)
-    
-    def clear(self):
-        self.stack.clear()
+    def getPath(self):
+        p = []
+        curr = self
+        while curr.parent != None:
+            p.insert(0, curr.coord)
+            curr = curr.parent
+        p.insert(0, curr.coord)
+        return p
+
 
 # since all search mechanics are the same, changing the frontier datastructure type is sufficient
 def comboSearch(maze, frontier, heuristic):
 
+    start_time = time()
+
     # initialization
     start = maze.getStart()
-    remainingObjectives = set(maze.getObjectives())
+    temp = []
 
-    # print (MST(list(remainingObjectives)))
+    # store exploredStates
+    exploredStates = 0
+    explored = {start:0}
 
-    # explored mappings for finding parent and cost
-    exploredParent = {start: start}
-    exploredCost = {start: 0}
-    statesExplored = 0
-
-    # add start
-    frontier.insert(0, start)
-
-    tpath = [start]
+    # setup start state
+    frontier.insert(State(start, None, 0, 0, 0, MSTcost(maze.getObjectives()), set(maze.getObjectives())))
 
     while len(frontier) > 0:
-        # pull 1 coordinate from frontier
-        current = frontier.pop()
-        statesExplored += 1
+        currentState = frontier.pop()
+        # print (currentState)
+        exploredStates += 1
         
-        # check if hit obj
-        if current in remainingObjectives:
+        # if currentstate hit an objective
+        if currentState.coord in currentState.unvisitedObjs:
 
-            remainingObjectives.remove(current)
+            temp.append(currentState.coord)
 
-            tpath.append(current)
-
-            temp = current
-            # reverse from temp to start to get path
-            arr = []
-            while temp != start:
-                # arr.insert(0,temp)
-                temp = exploredParent[temp]
-
-            tpath = tpath + arr
+            # done
+            if len(currentState.unvisitedObjs) <= 1:
+                print (currentState.getPath())
+                print ("Time Elapsed:", time() - start_time)
+                return currentState.getPath(), exploredStates
             
-            if len(remainingObjectives) == 0:
-                print (tpath)
-                return tpath, statesExplored
+            # update current state to reflect retriving obj
+            newObjs = set(currentState.unvisitedObjs)
+            newObjs.remove(currentState.coord)
+            newMST = MSTcost(list(newObjs))
 
-            # reset and start from current
-            start = current
-            exploredParent.clear()
-            exploredParent[start] = start
-            exploredCost.clear()
-            exploredCost[start] = 0
-            frontier.clear()
-            frontier.insert(0, start)
+            currentState.update(newMST, newObjs)
+
+            # update explored set
+            explored[hash(currentState)] = currentState.gVal
 
 
-        # loop through neighbors
-        for n in maze.getNeighbors(current[0], current[1]):
+        # based on current state, move into neighbors
+        for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
+            g = currentState.gVal + 1
+            h = min([manhattan(n, target) for target in currentState.unvisitedObjs])
+            f = heuristic(g,h) + currentState.MST
 
-            # calculate heuristics and apply heuristic function
-            g = exploredCost[current] + 1
-            h = [manhattan(n, target) for target in remainingObjectives]
-            f = heuristic(g, h)
+            # create new child with same objs
+            child = currentState.newSimpleChild(n, g, h, f)
 
-            # replacement with shorter backpath
-            if n not in exploredCost.keys() or g < exploredCost[n]:
-                exploredParent[n], exploredCost[n] = current, g
-                frontier.insert(f, n)
+            if hash(child) not in explored.keys() or g < explored[hash(child)]:
+                frontier.insert(child)
+                explored[hash(child)] = g
     
     return [], 0
     
@@ -217,3 +181,75 @@ def astar(maze):
     # return path, num_states_explored
 
     return comboSearch(maze, PriorityQueue(), AStarHeuristics)
+
+
+
+# f = g + min(h)
+def AStarHeuristics(g,h):
+    return g + h
+
+# f = min(h)
+def GreedyHeuristics(g,h):
+    return h
+
+def NoHeuristics(g,hs):
+    return 0
+
+def manhattan(c1, c2):
+    return abs(c1[0] - c2[0]) + abs(c1[1] - c2[1])
+
+# Priority Queue for Greedy and AStar, fval used
+class PriorityQueue(object): 
+    def __init__(self):
+        self.heap = []
+    
+    def __len__(self):
+        return len(self.heap)
+
+    def __str__(self):
+        return str(self.heap)
+  
+    # for inserting an element in the queue with specified priority value fval
+    def insert(self, node): 
+        heapq.heappush(self.heap, node)
+  
+    # for popping an element based on Priority 
+    def pop(self):
+        return heapq.heappop(self.heap)
+
+    def clear(self):
+        self.heap.clear()
+
+# FIFO QUEUE for BFS, fval ignored
+class FIFO(object):
+    def __init__(self):
+        self.queue = []
+
+    def __len__(self):
+        return len(self.queue)
+    
+    def pop(self):
+        return self.queue.pop(0)
+    
+    def insert(self, node):
+        self.queue.append(node)
+
+    def clear(self):
+        self.queue.clear()
+
+# LIFO QUEUE for BFS,  fval ignored
+class LIFO(object):
+    def __init__(self):
+        self.stack = []
+
+    def __len__(self):
+        return len(self.stack)
+    
+    def pop(self):
+        return self.stack.pop()
+    
+    def insert(self, node):
+        self.stack.append(node)
+    
+    def clear(self):
+        self.stack.clear()
