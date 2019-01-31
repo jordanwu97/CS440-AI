@@ -39,36 +39,48 @@ def search(maze, searchMethod):
 
 # Calculate estimated MST of list of unvisited nodes
 # Will always be less than true MST because using manhattan distance between vertices
-def MSTcost(nodes):
 
-    if len(nodes) < 1:
-        return 0
+def memoMST():
 
-    totalCost = 0
-    untouched = set(nodes)
-    
-    current = nodes[0]
-    untouched.remove(current)
+    memo = {}
 
-    # prims algorithm
-    for i in range(len(nodes) - 1):
-        # choose neighbor based on minimum manhattan distance
-        minDist, current = min([(manhattan(current,neighbor), neighbor) for neighbor in nodes if neighbor in untouched])
+    def MST(nodes):
+
+        if len(nodes) < 1:
+            return 0
+
+        if str(nodes) in memo:
+            return memo[str(nodes)]
+
+        totalCost = 0
+        untouched = set(nodes)
+        
+        current = nodes[0]
         untouched.remove(current)
-        totalCost += minDist
+
+        # prims algorithm
+        for i in range(len(nodes) - 1):
+            # choose neighbor based on minimum manhattan distance
+            minDist, current = min([(manhattan(current,neighbor), neighbor) for neighbor in nodes if neighbor in untouched])
+            untouched.remove(current)
+            totalCost += minDist
+
+        memo[str(nodes)] = totalCost
+        
+        return totalCost
     
-    return totalCost
+    return MST
         
 class State(object):
-    def __init__(self, coord, parent, gVal, hVal, fVal, MST, unvisitedObjs):
+    def __init__(self, coord, parent, g, f, MST, unvisitedObjs, unvisitedHash=None):
         self.coord = coord
         self.parent = parent
-        self.gVal = gVal
-        self.hVal = hVal
-        self.fVal = fVal
+        self.g = g
+        self.f = f
         self.MST = MST
         self.unvisitedObjs = unvisitedObjs
-        self.hashval = hash(((self.coord), str(unvisitedObjs)))
+        self.unvisitedHash = hash(str(self.unvisitedObjs)) if unvisitedHash==None else unvisitedHash
+        self.stateHash = hash((self.coord, self.unvisitedHash))
 
     def __str__(self):
         if self.parent != None:
@@ -76,20 +88,22 @@ class State(object):
         return "coord: " + str(self.coord) + "\tparent: None" + "\tunvisitedObjs: " + str(self.unvisitedObjs)
     
     def __hash__(self):
-        return self.hashval
+        return self.stateHash
 
     def __lt__(self, other):
-        return self.fVal < other.fVal
+        return self.f < other.f
 
-    def newSimpleChild(self, coord, gVal, hVal, fVal):
-        return State(coord, self, gVal, hVal, fVal, self.MST, self.unvisitedObjs)
+    def newSimpleChild(self, coord, g, f):
+        return State(coord, self, g, f, self.MST, self.unvisitedObjs, self.unvisitedHash)
 
     def update(self, MST, unvisitedObjs):
         self.MST = MST
         self.unvisitedObjs = unvisitedObjs
-        self.hashval = hash(((self.coord), str(unvisitedObjs)))
+        self.unvisitedHash = hash(str(unvisitedObjs))
+        self.stateHash = hash((self.coord, self.unvisitedHash))
+        
     
-    def getPath(self):
+    def getPathFromRoot(self):
         p = []
         curr = self
         while curr.parent != None:
@@ -111,13 +125,21 @@ def comboSearch(maze, frontier, heuristic):
     # store exploredStates
     exploredStates = 0
     explored = {start:0}
+    ignore = set()
+
+    # Used memoized MSTcost calculation
+    MSTcost = memoMST()
 
     # setup start state
-    frontier.insert(State(start, None, 0, 0, 0, MSTcost(maze.getObjectives()), set(maze.getObjectives())))
+    frontier.insert(State(start, None, 0, 0, MSTcost(maze.getObjectives()), set(maze.getObjectives())))
 
     while len(frontier) > 0:
         currentState = frontier.pop()
-        # print (currentState)
+
+        # skip if already found shorter path to state
+        if hash(currentState) in explored and explored[hash(currentState)] < currentState.g:
+            continue
+
         exploredStates += 1
         
         # if currentstate hit an objective
@@ -127,9 +149,8 @@ def comboSearch(maze, frontier, heuristic):
 
             # done
             if len(currentState.unvisitedObjs) <= 1:
-                print (currentState.getPath())
                 print ("Time Elapsed:", time() - start_time)
-                return currentState.getPath(), exploredStates
+                return currentState.getPathFromRoot(), exploredStates
             
             # update current state to reflect retriving obj
             newObjs = set(currentState.unvisitedObjs)
@@ -139,19 +160,19 @@ def comboSearch(maze, frontier, heuristic):
             currentState.update(newMST, newObjs)
 
             # update explored set
-            explored[hash(currentState)] = currentState.gVal
+            explored[hash(currentState)] = currentState.g
 
 
         # based on current state, move into neighbors
         for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
-            g = currentState.gVal + 1
-            h = min([manhattan(n, target) for target in currentState.unvisitedObjs])
-            f = heuristic(g,h) + currentState.MST
+            g = currentState.g + 1
+            h = min([manhattan(n, target) for target in currentState.unvisitedObjs]) + currentState.MST
+            f = heuristic(g,h)
 
             # create new child with same objs
-            child = currentState.newSimpleChild(n, g, h, f)
+            child = currentState.newSimpleChild(n, g, f)
 
-            if hash(child) not in explored.keys() or g < explored[hash(child)]:
+            if hash(child) not in explored or g < explored[hash(child)]:
                 frontier.insert(child)
                 explored[hash(child)] = g
     
