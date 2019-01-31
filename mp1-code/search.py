@@ -16,7 +16,8 @@ files and classes when code is run, so be careful to not modify anything else.
 
 import heapq
 from time import time
-# this is part of standard python lib?
+
+# TODO: Implement filtering of overridden states. (States with shorter path to achieve)
 
 # Search should return the path and the number of states explored.
 # The path should be a list of tuples in the form (row, col) that correspond
@@ -155,31 +156,20 @@ def comboSearch(maze, frontier, heuristic):
                 explored[hash(child)] = g
     
     return [], 0
-    
-def bfs(maze):
-    # TODO: Write your code here
-    # return path, num_states_explored
 
+# Return:
+# path, numStatesExplored
+
+def bfs(maze):
     return comboSearch(maze, FIFO(), NoHeuristics)
 
 def dfs(maze):
-    # TODO: Write your code here
-    # return path, num_states_explored
-
     return comboSearch(maze, LIFO(), NoHeuristics)
 
 def greedy(maze):
-    # TODO: Write your code here
-    # return path, num_states_explored
-    
     return comboSearch(maze, PriorityQueue(), GreedyHeuristics)
 
-
 def astar(maze):
-
-    # TODO: Write your code here
-    # return path, num_states_explored
-
     return comboSearch(maze, PriorityQueue(), AStarHeuristics)
 
 
