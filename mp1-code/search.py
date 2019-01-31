@@ -40,7 +40,55 @@ def search(maze, searchMethod):
 # Calculate estimated MST of list of unvisited nodes
 # Will always be less than true MST because using manhattan distance between vertices
 
-def memoMST():
+def shortestBetweenObjectives(maze, s, objs):
+
+    frontier = FIFO()
+    frontier.insert(State(s, None, 0, 0, 0, set([])))
+
+    explored = {}
+
+    unvisited = set(objs)
+
+    objsmap = {}
+
+    while len(frontier) > 0:
+        currentState = frontier.pop()
+
+        # skip if already found shorter path to state
+        if hash(currentState) in explored and explored[hash(currentState)] < currentState.g:
+            continue
+        
+        # if currentstate hit an objective
+        if currentState.coord in unvisited:
+
+            objsmap[currentState.coord] = len(currentState.getPathFromRoot())
+            unvisited.remove(currentState.coord)
+
+            if len(unvisited) == 0:
+                return objsmap
+
+
+        # based on current state, move into neighbors
+        for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
+
+            # create new child with same objs
+            child = currentState.newSimpleChild(n, 0, 0)
+
+            if hash(child) not in explored:
+                frontier.insert(child)
+                explored[hash(child)] = 0
+    
+    return [], 0
+
+
+def memoMST(maze):
+
+    objs = maze.getObjectives()
+
+    truedist = {}
+
+    for i, n in enumerate(objs):
+        truedist[n] = shortestBetweenObjectives(maze, n, objs)
 
     memo = {}
 
@@ -61,7 +109,7 @@ def memoMST():
         # prims algorithm
         for i in range(len(nodes) - 1):
             # choose neighbor based on minimum manhattan distance
-            minDist, current = min([(manhattan(current,neighbor), neighbor) for neighbor in nodes if neighbor in untouched])
+            minDist, current = min([(truedist[current][neighbor], neighbor) for neighbor in nodes if neighbor in untouched])
             untouched.remove(current)
             totalCost += minDist
 
@@ -122,16 +170,17 @@ def comboSearch(maze, frontier, heuristic):
     start = maze.getStart()
     temp = []
 
-    # store exploredStates
-    exploredStates = 0
-    explored = {start:0}
-    ignore = set()
-
     # Used memoized MSTcost calculation
-    MSTcost = memoMST()
+    MSTcost = memoMST(maze)
 
     # setup start state
-    frontier.insert(State(start, None, 0, 0, MSTcost(maze.getObjectives()), set(maze.getObjectives())))
+    s = State(start, None, 0, 0, MSTcost(maze.getObjectives()), set(maze.getObjectives()))
+    frontier.insert(s)
+
+    # store exploredStates
+    exploredStates = 0
+    explored = {hash(s):0}
+    ignore = set()
 
     while len(frontier) > 0:
         currentState = frontier.pop()
