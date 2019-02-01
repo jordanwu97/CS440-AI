@@ -37,79 +37,6 @@ def search(maze, searchMethod):
 # HEURISTIC FOR MULTI DOT
 # h = est2nearest + cost(MST of unvisited)
 
-# Calculate estimated MST of list of unvisited nodes
-# Will always be less than true MST because using manhattan distance between vertices
-
-def shortestBetweenObjectives(maze, s, objs):
-
-    frontier = FIFO()
-    frontier.insert(State(s, None, 0, 0, 0, set([])))
-
-    explored = set()
-    remainingObjs = set(objs)
-
-    objsmap = {}
-
-    while len(frontier) > 0:
-        currentState = frontier.pop()
-        
-        # if currentstate hit an objective
-        if currentState.coord in remainingObjs:
-
-            objsmap[currentState.coord] = currentState.g
-            remainingObjs.remove(currentState.coord)
-
-            if len(remainingObjs) == 0:
-                return objsmap
-
-
-        # based on current state, move into neighbors
-        for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
-
-            # create new child with same objs
-            child = currentState.newSimpleChild(n, currentState.g + 1, 0)
-
-            if hash(child) not in explored:
-                frontier.insert(child)
-                explored.add(hash(child))
-    
-    return [], 0
-
-
-def memoMST(maze):
-
-    objs = maze.getObjectives()
-
-    truedist = {}
-
-    for i, n in enumerate(objs):
-        truedist[n] = shortestBetweenObjectives(maze, n, objs)
-
-    # print (truedist)
-
-    memo = {}
-
-    def MST(nodes):
-
-        totalCost = 0
-
-        visited = set()
-        unvisited = set(nodes)
-        
-        visited.add(unvisited.pop())
-
-        # prims algorithm
-        while len(unvisited) > 0:
-            # choose neighbor based on minimum manhattan distance
-            minDist, minU = min([ min([ (truedist[u][v], u) for u in unvisited ]) for v in visited ])
-            visited.add(minU)
-            unvisited.remove(minU)
-            totalCost += minDist
-        
-        return totalCost
-    
-    return MST
-        
 class State(object):
     def __init__(self, coord, parent, g, f, MST, unvisitedObjs, unvisitedHash=None):
         self.coord = coord
@@ -151,6 +78,66 @@ class State(object):
         p.insert(0, curr.coord)
         return p
 
+# Create MST using true distance from SSSP
+def memoMST(maze):
+
+    # Flood fill to find SSSP to all objectives
+    def floodFill(maze, s, objs):
+        frontier = FIFO()
+        frontier.insert(State(s, None, 0, 0, 0, set([])))
+
+        explored = set()
+        remainingObjs = set(objs)
+
+        objsmap = {}
+
+        while len(frontier) > 0:
+            currentState = frontier.pop()
+            
+            # if currentstate hit an objective
+            if currentState.coord in remainingObjs:
+
+                objsmap[currentState.coord] = currentState.g
+                remainingObjs.remove(currentState.coord)
+
+                if len(remainingObjs) == 0:
+                    return objsmap
+
+
+            # based on current state, move into neighbors
+            for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
+
+                # create new child with same objs
+                child = currentState.newSimpleChild(n, currentState.g + 1, 0)
+
+                if hash(child) not in explored:
+                    frontier.insert(child)
+                    explored.add(hash(child))
+        
+        return [], 0
+
+    truedist = {}
+    for i, n in enumerate(maze.getObjectives()):
+        truedist[n] = floodFill(maze, n, maze.getObjectives())
+
+    memo = {}
+
+    def MST(nodes):
+        totalCost = 0
+        visited = set()
+        unvisited = set(nodes)
+        visited.add(unvisited.pop())
+
+        # prims algorithm
+        while len(unvisited) > 0:
+            minDist, minU = min([ min([ (truedist[u][v], u) for u in unvisited ]) for v in visited ])
+            visited.add(minU)
+            unvisited.remove(minU)
+            totalCost += minDist
+        
+        return totalCost
+    
+    return MST
 
 # since all search mechanics are the same, changing the frontier datastructure type is sufficient
 def comboSearch(maze, frontier, heuristic):
