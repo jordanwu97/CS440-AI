@@ -45,26 +45,21 @@ def shortestBetweenObjectives(maze, s, objs):
     frontier = FIFO()
     frontier.insert(State(s, None, 0, 0, 0, set([])))
 
-    explored = {}
-
-    unvisited = set(objs)
+    explored = set()
+    remainingObjs = set(objs)
 
     objsmap = {}
 
     while len(frontier) > 0:
         currentState = frontier.pop()
-
-        # skip if already found shorter path to state
-        if hash(currentState) in explored and explored[hash(currentState)] < currentState.g:
-            continue
         
         # if currentstate hit an objective
-        if currentState.coord in unvisited:
+        if currentState.coord in remainingObjs:
 
-            objsmap[currentState.coord] = len(currentState.getPathFromRoot())
-            unvisited.remove(currentState.coord)
+            objsmap[currentState.coord] = currentState.g
+            remainingObjs.remove(currentState.coord)
 
-            if len(unvisited) == 0:
+            if len(remainingObjs) == 0:
                 return objsmap
 
 
@@ -72,11 +67,11 @@ def shortestBetweenObjectives(maze, s, objs):
         for n in maze.getNeighbors(currentState.coord[0], currentState.coord[1]):
 
             # create new child with same objs
-            child = currentState.newSimpleChild(n, 0, 0)
+            child = currentState.newSimpleChild(n, currentState.g + 1, 0)
 
             if hash(child) not in explored:
                 frontier.insert(child)
-                explored[hash(child)] = 0
+                explored.add(hash(child))
     
     return [], 0
 
@@ -90,30 +85,26 @@ def memoMST(maze):
     for i, n in enumerate(objs):
         truedist[n] = shortestBetweenObjectives(maze, n, objs)
 
+    # print (truedist)
+
     memo = {}
 
     def MST(nodes):
 
-        if len(nodes) < 1:
-            return 0
-
-        if str(nodes) in memo:
-            return memo[str(nodes)]
-
         totalCost = 0
-        untouched = set(nodes)
+
+        visited = set()
+        unvisited = set(nodes)
         
-        current = nodes[0]
-        untouched.remove(current)
+        visited.add(unvisited.pop())
 
         # prims algorithm
-        for i in range(len(nodes) - 1):
+        while len(unvisited) > 0:
             # choose neighbor based on minimum manhattan distance
-            minDist, current = min([(truedist[current][neighbor], neighbor) for neighbor in nodes if neighbor in untouched])
-            untouched.remove(current)
+            minDist, minU = min([ min([ (truedist[u][v], u) for u in unvisited ]) for v in visited ])
+            visited.add(minU)
+            unvisited.remove(minU)
             totalCost += minDist
-
-        memo[str(nodes)] = totalCost
         
         return totalCost
     
