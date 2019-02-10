@@ -5,6 +5,19 @@ import numpy as np
 dominos = [np.array([[i],[i]]) for i in range(1,31)]
 triominos = [np.array([[i,0],[i,i]]) for i in range(1,21)]
 
+# 1:F
+# 2:I
+# 3:L
+# 4:N
+# 5:P
+# 6:T
+# 7:U
+# 8:V
+# 9:W
+# 10:X
+# 11:Y
+# 12:Z
+
 petnominos = [np.array([[0,1,1],
                    [1,1,0],
                    [0,1,0]]),
@@ -46,6 +59,8 @@ petnominos = [np.array([[0,1,1],
                   [0,12,0],
                   [0,12,12]])]
         
+board_hole = np.ones((8,8))
+board_hole[3:5,3:5] -= np.ones((2,2))
         
 board_6x10 = np.ones((6,10))
 board_5x12 = np.ones((5,12))

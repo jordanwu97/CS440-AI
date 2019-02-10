@@ -1,11 +1,24 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import time
+import algox
 
 def nphash(arr):
     return hash(str(arr))
 
-def add_pentomino(board, pent, coord, check_pent=False, valid_pents=None):
+def can_add_pent(board, pent, coord):
+    if coord[0] < 0 or coord[1] < 0:
+        return False
+    if coord[0] + pent.shape[0] > board.shape[0] or coord[1] + pent.shape[1] > board.shape[1]:
+        return False
+
+    for row in range(pent.shape[0]):
+        for col in range(pent.shape[1]):
+            if pent[row][col] != 0:
+                if board[coord[0]+row][coord[1]+col] != 0:
+                    return False
+    return True
+
+def add_pentomino(board, pent, coord):
     """
     Adds a pentomino pent to the board. The pentomino will be placed such that
     coord[0] is the lowest row index of the pent and coord[1] is the lowest 
@@ -13,80 +26,14 @@ def add_pentomino(board, pent, coord, check_pent=False, valid_pents=None):
     
     check_pent will also check if the pentomino is part of the valid pentominos.
     """
-    if check_pent and not is_pentomino(pent, valid_pents):
-        return False
     # check for overlap
-    try:
-        for row in range(pent.shape[0]):
-            for col in range(pent.shape[1]):
-                if pent[row][col] != 0:
-                    if board[coord[0]+row][coord[1]+col] != 0:
-                        return False
-    except IndexError:
+    if not can_add_pent(board,pent,coord):
         return False
-
-
-    for row in range(pent.shape[0]):
-        for col in range(pent.shape[1]):
-            if pent[row][col] != 0:
-                board[coord[0]+row][coord[1]+col] = pent[row][col]
+    board[coord[0]:coord[0]+pent.shape[0], coord[1]:coord[1]+pent.shape[1]] += pent
     return True
 
-def del_pentomino(board, pent, coord):
-    for row in range(pent.shape[0]):
-        for col in range(pent.shape[1]):
-            if pent[row][col] != 0:
-                board[coord[0]+row][coord[1]+col] = 0
-
-def rec_solve(board, board_size, all_pents, depth):
-
-    time.sleep(0.5)
-    print (board)
-
-    zeroes = np.argwhere(board==0)
-    
-    if len(zeroes) == 0:
-        return True
-
-    top_left = zeroes[0]
-
-    tried = 0
-
-    for pent_idx in range(len(all_pents)):
-        pentlist = list(all_pents[pent_idx])
-        # remove current pent
-        del all_pents[pent_idx]
-        for pent in pentlist:
-            if add_pentomino(board, pent, top_left):
-                if rec_solve(board, board_size, all_pents, depth+1):
-                    return True
-                del_pentomino(board, pent, top_left)
-            
-        # re-add
-        all_pents.insert(pent_idx, pentlist)
-    
-    
-    return False
-    
-
-def solve(board, pents):
-    """
-    This is the function you will implement. It will take in a numpy array of the board
-    as well as a list of n tiles in the form of numpy arrays. The solution returned
-    is of the form [(p1, (row1, col1))...(pn,  (rown, coln))]
-    where pi is a tile (may be rotated or flipped), and (rowi, coli) is 
-    the coordinate of the upper left corner of pi in the board (lowest row and column index 
-    that the tile covers).
-    
-    -Use np.flip and np.rot90 to manipulate pentominos.
-    
-    -You can assume there will always be a solution.
-    """
-
-    board = (board * -1) + 1
-    
-    all_pents = [[] for i in range(12)]
-
+def generateAllPents(pents):
+    all_pents = [[] for i in range(len(pents))]
     for i, pent in enumerate(pents):
         rot_pent = pent
         no_repeat = set()
@@ -103,6 +50,55 @@ def solve(board, pents):
             
             rot_pent = np.rot90(rot_pent)
 
-    rec_solve(board, board.shape[0] * board.shape[1], all_pents, 1)
+    return all_pents
 
-    return []
+def boardCoord2IDX(board, coord):
+    return coord[0] * board.shape[1] + coord[1]
+
+def generateMapping(board, all_pents):
+
+    choiceMapping = {}
+    Y = {}
+
+    choice = 0
+    for pent_idx, pentlist in enumerate(all_pents):
+        for pent_orientation,pent in enumerate(pentlist):
+            for coord, val in np.ndenumerate(board):
+                board_cpy = board.copy()
+                if add_pentomino(board_cpy, pent, coord):
+                    Y[choice] = [(pent_idx * -1) - 1] + [ boardCoord2IDX(board, c) for c in np.argwhere(board_cpy > 0)]
+                    choiceMapping[choice] = (pent_idx, pent_orientation, (coord))
+                    choice += 1
+
+    return Y, choiceMapping
+                    
+
+
+
+def solve(board, pents):
+    all_pents = generateAllPents(pents)
+
+    board = board.astype(int)
+    board = (board * -1) + 1
+
+    Y, choiceMapping = generateMapping(board, all_pents)
+
+    # print (Y)
+
+    X = list(range(-len(pents),0)) + [ boardCoord2IDX(board,coord) for coord in np.argwhere(board==0)]
+
+    X = algox.preprocess(X,Y)
+
+    sol = algox.solve(X,Y)[1]
+
+    chosen_pents = [choiceMapping[choice] for choice in sol]
+
+    final = [(all_pents[chosen[0]][chosen[1]], chosen[2])for chosen in chosen_pents]
+
+    print (final)
+    
+    return final
+
+
+
+    
