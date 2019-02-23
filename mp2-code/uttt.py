@@ -158,7 +158,6 @@ class ultimateTicTacToe:
 
         return totalUtil
 
-
     def evaluateDesigned(self, isMax):
         """
         This function implements the evaluation function for ultimate tic tac toe for your own agent.
@@ -168,8 +167,8 @@ class ultimateTicTacToe:
         output:
         score(float): estimated utility score for maxPlayer or minPlayer
         """
-        #YOUR CODE HERE
-
+        # designed show always be evaluating 
+        
         totalUtil = self.evaluatePredifined(isMax)
 
         return totalUtil
@@ -376,14 +375,18 @@ class ultimateTicTacToe:
         minSearch = self.minimax if minSearch == None else minSearch
         
         # set Search and evaluations
-        if maxFirst:
-            a1Search = lambda boardIdx: maxSearch(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
-            a2Search = lambda boardIdx: minSearch(3, boardIdx, False, lambda: self.evaluatePredifined(False), returnCord=True)
-        else:
-            a1Search = lambda boardIdx: minSearch(3, boardIdx, False, lambda: self.evaluatePredifined(False), returnCord=True)
-            a2Search = lambda boardIdx: maxSearch(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
+        maxPlayerSearch = lambda boardIdx: maxSearch(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
+        minPlayerSearch = lambda boardIdx: minSearch(3, boardIdx, False, lambda: self.evaluatePredifined(False), returnCord=True)
 
-        return self._playGameAgent(maxFirst, a1Search, a2Search)
+        # replace symbols based on who goes first
+        if not maxFirst:
+            self.minPlayer = 'X'
+            self.maxPlayer = 'O'
+
+        print ("maxPlayer: ", self.maxPlayer)
+        print ("minPlayer: ", self.minPlayer)
+
+        return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
 
     def playGameYourAgent(self, maxFirst, isMinimax):
         """
@@ -394,15 +397,17 @@ class ultimateTicTacToe:
         gameBoards(list of 2d lists): list of game board positions at each move
         winner(int): 1 for maxPlayer is the winner, -1 for minPlayer is the winner, and 0 for tie.
         """
-        if maxFirst: # if maxFirst, designed comes second
-            a1Search = lambda boardIdx: self.alphabeta(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
-            a2Search = lambda boardIdx: self.alphabeta(3, boardIdx, True, lambda: self.evaluateDesigned(True), returnCord=True)
-        else:
-            a1Search = lambda boardIdx: self.alphabeta(3, boardIdx, True, lambda: self.evaluateDesigned(True), returnCord=True)
-            a2Search = lambda boardIdx: self.alphabeta(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
+        # maxPlayer keeps same strategy
+        maxPlayerSearch = lambda boardIdx: self.alphabeta(3, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
+        # we replace minPlayer with our player
+        minPlayerSearch = lambda boardIdx: self.alphabeta(3, boardIdx, False, lambda: self.evaluateDesigned(False), returnCord=True)
+        
+        # replace symbols based on who goes first
+        if not maxFirst:
+            self.minPlayer = 'X'
+            self.maxPlayer = 'O' 
 
-        return self._playGameAgent(maxFirst, a1Search, a2Search)
-
+        return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
 
     def playGameHuman(self,maxFirst,isMinimax):
         """
@@ -428,7 +433,7 @@ if __name__=="__main__":
     #print (max((100, (1,2)), (2, (0,0)) ))
     #uttt.playGamePredifinedAgent(True, True)
 
-    # gameBoards,bestMove, expandedNodes, bestValue, winner=uttt.playGamePredifinedAgent(False,False, maxSearch=uttt.minimax, minSearch=uttt.minimax)
+    # gameBoards,bestMove, expandedNodes, bestValue, winner=uttt.playGamePredifinedAgent(True,False, maxSearch=uttt.minimax, minSearch=uttt.minimax)
     gameBoards,bestMove, expandedNodes, bestValue, winner=uttt.playGameYourAgent(True,True)
     # uttt.playGameHuman(True,True)
     
