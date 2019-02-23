@@ -327,7 +327,8 @@ class ultimateTicTacToe:
         winner=0
         boardIdx = self.startBoardIdx
 
-        while self.checkMovesLeft():
+        # check if anyone won or no more moves
+        while self.checkMovesLeft() and self.checkWinner() == 0:
             
             # search based on who is playing
             if maxFirst:
@@ -351,10 +352,6 @@ class ultimateTicTacToe:
             maxFirst = not maxFirst
 
             self.printGameBoard()
-
-            # check if anyone won
-            if self.checkWinner() != 0:
-                break
 
         return gameBoards, bestMove, expandedNodes, bestValue, self.checkWinner()
 
