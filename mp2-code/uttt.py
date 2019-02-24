@@ -525,7 +525,7 @@ class ultimateTicTacToe:
 
         return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
 
-    def playGameYourAgent(self,maxFirst):
+    def playGameYourAgent(self,maxFirst=True):
         """
         This function implements the processes of the game of your own agent vs predifined offensive agent.
         input args:
@@ -577,6 +577,21 @@ class ultimateTicTacToe:
 
         self._playGameAgent(True, maxPlayerSearch, minPlayerSearch)
 
+def playPredefinedAgents():
+    uttt=ultimateTicTacToe()
+    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(True, True, True)
+
+    uttt.printGameBoard()
+    print ("bestMove:", bestMove)
+    print ("expandedNodes:", expandedNodes)
+    print ("bestValues:", bestValue)
+    if winner == 1:
+        print("The winner is maxPlayer!!!")
+    elif winner == -1:
+        print("The winner is minPlayer!!!")
+    else:
+        print("Tie. No winner:(")
+
 def playMyAgent():
     myAgentScore = 0
     maxAgentScore = 0
@@ -599,26 +614,12 @@ def playMyAgent():
     print ("myAgentScore:", myAgentScore)
     print ("maxAgentScore:", maxAgentScore)
 
-def playPredefinedAgents():
-    uttt=ultimateTicTacToe()
-    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(True, True, True)
-
-    uttt.printGameBoard()
-    print ("bestMove:", bestMove)
-    print ("expandedNodes:", expandedNodes)
-    print ("bestValues:", bestValue)
-    if winner == 1:
-        print("The winner is maxPlayer!!!")
-    elif winner == -1:
-        print("The winner is minPlayer!!!")
-    else:
-        print("Tie. No winner:(")
 
 def playHuman():
     uttt=ultimateTicTacToe()
     gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGameHuman()
 
 if __name__=="__main__":
-    # playMyAgent()
     # playPredefinedAgents()
-    playHuman()
+    playMyAgent()
+    # playHuman()
