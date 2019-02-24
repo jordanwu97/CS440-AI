@@ -552,7 +552,7 @@ class ultimateTicTacToe:
 
         return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
 
-    def playGameHuman(self,maxFirst,isMinimax):
+    def playGameHuman(self):
         """
         This function implements the processes of the game of your own agent vs a human.
         output:
@@ -562,12 +562,20 @@ class ultimateTicTacToe:
         """
         #YOUR CODE HERE
         def human(*arg, **kwargs):
+            self.printGameBoard()
             a = None
             while a == None or len(a) != 2:
                 a = [int(b) for b in input("your turn: (x,y) ").split(",")]
             return 0, (a[0],a[1])
 
-        self._playGameAgent(True, self.alphabeta, human, False, False)
+        maxPlayerSearch = lambda boardIdx: human()
+        minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, False, returnCord=True)
+
+        # set evaluation
+        self.maxEvalFunc = lambda: self.evaluatePredifined(True)
+        self.minEvalFunc = lambda: self.evaluateDesigned(False)
+
+        self._playGameAgent(True, maxPlayerSearch, minPlayerSearch)
 
 def playMyAgent():
     myAgentScore = 0
@@ -606,6 +614,11 @@ def playPredefinedAgents():
     else:
         print("Tie. No winner:(")
 
+def playHuman():
+    uttt=ultimateTicTacToe()
+    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGameHuman()
+
 if __name__=="__main__":
-    playMyAgent()
+    # playMyAgent()
     # playPredefinedAgents()
+    playHuman()
