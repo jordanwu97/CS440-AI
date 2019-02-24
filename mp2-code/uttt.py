@@ -43,8 +43,12 @@ class ultimateTicTacToe:
         self.preventThreeInARowDesignUtility=300
         self.cornerDesignUtility=30
 		
-        self.statesExplored = 0
+        # set evaluation functions for min and max players
+        self.maxEvalFunc = lambda: self.evaluatePredifined(True)
+        self.minEvalFunc = lambda: self.evaluatePredifined(False)
 
+        # some housekeeping for states explored + memoziation
+        self.statesExplored = 0
         self.utilityMemo={}
 
     def printGameBoard(self):
@@ -326,7 +330,7 @@ class ultimateTicTacToe:
         self.board[globalRow + localRow][globalCol + localCol] = self.maxPlayer if isMax else self.minPlayer
         return True
             
-    def alphabeta(self, depth, currBoardIdx, isMax, evalFunc, alpha=-10000, beta=10000, returnCord=False):
+    def alphabeta(self,depth,currBoardIdx,alpha,beta,isMax, returnCord=False):
         """
         This function implements alpha-beta algorithm for ultimate tic-tac-toe game.
         input args:
@@ -342,9 +346,16 @@ class ultimateTicTacToe:
         # increment statesExplored
         self.statesExplored += 1
         
-        # if at level 3 or no moves left to play (someone already won)
+        # if at maxdepth
+        # or no moves left to play (someone already won), keep going down tree
         if depth == self.maxDepth or self.checkWinner() != 0:
-            return evalFunc()
+            # some jank here. 
+            # need to invert the evaluation functions if depth is odd
+            # because isMax will be false when it should be true
+            if depth % 2 == 0:
+                return self.maxEvalFunc() if isMax else self.minEvalFunc()
+            else:
+                return self.minEvalFunc() if isMax else self.maxEvalFunc()
         
         bestValue = -100000000 if isMax else 100000000
         coord = (0,0)
@@ -354,14 +365,14 @@ class ultimateTicTacToe:
             for c in range(3):
                 if self._makeMove(currBoardIdx, r, c, isMax):
                     if isMax:
-                        bestValue, coord = max([(bestValue,coord), (self.alphabeta(depth + 1, r * 3 + c, not isMax, evalFunc, alpha, beta), (r,c))], key = lambda pair: pair[0])
+                        bestValue, coord = max([(bestValue,coord), (self.alphabeta(depth + 1, r * 3 + c, alpha, beta, not isMax), (r,c))], key = lambda pair: pair[0])
                         if bestValue > beta:
                             self._makeMove(currBoardIdx, r, c, isMax, eraseMove=True)
                             return (bestValue, coord) if returnCord else bestValue
                         else:
                             alpha = bestValue
                     else:
-                        bestValue, coord = min([(bestValue,coord), (self.alphabeta(depth + 1, r * 3 + c, not isMax, evalFunc, alpha, beta), (r,c))], key = lambda pair: pair[0])
+                        bestValue, coord = min([(bestValue,coord), (self.alphabeta(depth + 1, r * 3 + c, alpha, beta, not isMax), (r,c))], key = lambda pair: pair[0])
                         if bestValue < alpha:
                             self._makeMove(currBoardIdx, r, c, isMax, eraseMove=True)
                             return (bestValue, coord) if returnCord else bestValue
@@ -371,7 +382,7 @@ class ultimateTicTacToe:
 
         return (bestValue, coord) if returnCord else bestValue
 
-    def minimax(self, depth, currBoardIdx, isMax, evalFunc, returnCord=False):
+    def minimax(self, depth, currBoardIdx, isMax, returnCord=False):
         """
         This function implements minimax algorithm for ultimate tic-tac-toe game.
         input args:
@@ -385,10 +396,17 @@ class ultimateTicTacToe:
         # increment statesExplored
         self.statesExplored += 1
         
-        # if at level 3 or no moves left to play (someone already won)
+        # if at maxdepth
+        # or no moves left to play (someone already won), keep going down tree
         if depth == self.maxDepth or self.checkWinner() != 0:
-            return evalFunc()
-
+            # some jank here. 
+            # need to invert the evaluation functions if depth is odd
+            # because isMax will be false when it should be true
+            if depth % 2 == 0:
+                return self.maxEvalFunc() if isMax else self.minEvalFunc()
+            else:
+                return self.minEvalFunc() if isMax else self.maxEvalFunc()
+        
         bestValue = -100000000 if isMax else 100000000
         coord = (0,0)
 
@@ -398,9 +416,9 @@ class ultimateTicTacToe:
                 if self._makeMove(currBoardIdx, r, c, isMax):
                     if isMax:
                         
-                        bestValue, coord = max([(bestValue,coord), (self.minimax(depth + 1, r * 3 + c, not isMax, evalFunc), (r,c))], key = lambda pair: pair[0])
+                        bestValue, coord = max([(bestValue,coord), (self.minimax(depth + 1, r * 3 + c, not isMax), (r,c))], key = lambda pair: pair[0])
                     else:
-                        bestValue, coord = min([(bestValue,coord), (self.minimax(depth + 1, r * 3 + c, not isMax, evalFunc), (r,c))], key = lambda pair: pair[0])
+                        bestValue, coord = min([(bestValue,coord), (self.minimax(depth + 1, r * 3 + c, not isMax), (r,c))], key = lambda pair: pair[0])
                     
                     self._makeMove(currBoardIdx, r, c, isMax, eraseMove=True)
 
@@ -483,13 +501,20 @@ class ultimateTicTacToe:
         gameBoards(list of 2d lists): list of game board positions at each move
         winner(int): 1 for maxPlayer is the winner, -1 for minPlayer is the winner, and 0 for tie.
         """
-        # set search methods
-        maxSearch = self.minimax if isMinimaxOffensive else self.alphabeta
-        minSearch = self.minimax if isMinimaxDefensive else self.alphabeta
+        # set Search
+        if isMinimaxOffensive:
+            maxPlayerSearch = lambda boardIdx: self.minimax(0, boardIdx, True, returnCord=True)
+        else:
+            maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, True, returnCord=True)
         
-        # set Search and evaluations
-        maxPlayerSearch = lambda boardIdx: maxSearch(0, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
-        minPlayerSearch = lambda boardIdx: minSearch(0, boardIdx, False, lambda: self.evaluatePredifined(False), returnCord=True)
+        if isMinimaxDefensive:
+            minPlayerSearch = lambda boardIdx: self.minimax(0, boardIdx, False, returnCord=True)
+        else:
+            minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, False, returnCord=True)
+        
+        # set evaluation
+        self.maxEvalFunc = lambda: self.evaluatePredifined(True)
+        self.minEvalFunc = lambda: self.evaluatePredifined(False)
 
         # replace symbols based on who goes first
         if not maxFirst:
@@ -510,10 +535,14 @@ class ultimateTicTacToe:
         winner(int): 1 for maxPlayer is the winner, -1 for minPlayer is the winner, and 0 for tie.
         """
         # maxPlayer keeps same strategy
-        maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, True, lambda: self.evaluatePredifined(True), returnCord=True)
+        maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, True, returnCord=True)
         # we replace minPlayer with our player
-        minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, False, lambda: self.evaluateDesigned(False), returnCord=True)
+        minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, False, returnCord=True)
         
+        # set evaluation
+        self.maxEvalFunc = lambda: self.evaluatePredifined(True)
+        self.minEvalFunc = lambda: self.evaluateDesigned(False)
+
         # replace symbols based on who goes first
         if not maxFirst:
             self.minPlayer = 'X'
@@ -564,7 +593,7 @@ def playMyAgent():
 
 def playPredefinedAgents():
     uttt=ultimateTicTacToe()
-    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(False, False, True)
+    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(True, True, True)
 
     uttt.printGameBoard()
     print ("bestMove:", bestMove)
