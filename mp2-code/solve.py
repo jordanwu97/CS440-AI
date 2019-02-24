@@ -18,7 +18,10 @@ class ALGOX(object):
             sol = list(solution)
             return True, sol
         else:
+            # chose column with minimum 1s.
+            # "Fill out a position with minimum choice"
             c = min(X, key=lambda c: len(X[c]))
+            # "chose iteratively the choice to fill out the position"
             for r in list(X[c]):
                 solution.append(r)
                 cols = ALGOX._select(X, Y, r)
