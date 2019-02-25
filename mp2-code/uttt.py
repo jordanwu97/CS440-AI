@@ -1,6 +1,30 @@
 from time import sleep
 from math import inf
-from random import randint
+import random
+
+customboard1 =     [['_','_','X','_','_','_','O','_','_'],
+                    ['_','X','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','O','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_']]
+
+customstart1 = 1
+
+customboard2 =     [['_','_','X','_','_','_','O','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','X','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','O','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_'],
+                    ['_','_','_','_','_','_','_','_','_']]
+
+customstart2 = 0
 
 class ultimateTicTacToe:
     def __init__(self):
@@ -357,7 +381,7 @@ class ultimateTicTacToe:
             else:
                 return self.minEvalFunc() if isMax else self.maxEvalFunc()
         
-        bestValue = -100000000 if isMax else 100000000
+        bestValue = -inf if isMax else inf
         coord = (0,0)
 
         # alphabeta search
@@ -407,7 +431,7 @@ class ultimateTicTacToe:
             else:
                 return self.minEvalFunc() if isMax else self.maxEvalFunc()
         
-        bestValue = -100000000 if isMax else 100000000
+        bestValue = -inf if isMax else inf
         coord = (0,0)
 
         # play all valid moves on local board
@@ -426,14 +450,12 @@ class ultimateTicTacToe:
 
     def _playGameAgent(self, maxFirst, a1Search, a2Search):
         """
-        This function implements the processes of the game of 2 agent.
+        This function implements the processes of the game of predifined offensive agent vs defensive agent.
         input args:
         maxFirst(bool): boolean variable indicates whether maxPlayer or minPlayer plays first.
                         True for maxPlayer plays first, and False for minPlayer plays first.
-        maxMethod(function): minimax or alphabeta for max
-        minMethod(function): minimax or alphabeta for min
-        usePredefined(bool): True for using predefined agents for min and max, False if not
-        myAgentFirst(bool): True if my agent goes first
+        a1Search(function): Search function for maxPlayer
+        a2Search(function): Search function for minPlayer
         output:
         bestMove(list of tuple): list of bestMove coordinates at each step
         bestValue(list of float): list of bestValue at each move
@@ -478,8 +500,8 @@ class ultimateTicTacToe:
         return gameBoards, bestMove, expandedNodes, bestValue, self.checkWinner()
 
     def _printGameInfo(self, maxFirst):
-        print ("maxPlayer: ", self.maxPlayer)
-        print ("minPlayer: ", self.minPlayer)
+        # print ("maxPlayer: ", self.maxPlayer)
+        # print ("minPlayer: ", self.minPlayer)
 
         if maxFirst:
             print ("maxFirst")
@@ -492,7 +514,9 @@ class ultimateTicTacToe:
         input args:
         maxFirst(bool): boolean variable indicates whether maxPlayer or minPlayer plays first.
                         True for maxPlayer plays first, and False for minPlayer plays first.
-        isMinimax(bool):boolean variable indicates whether it's using minimax or alpha-beta pruning algorithm.
+        isMinimaxOffensive(bool):boolean variable indicates whether it's using minimax or alpha-beta pruning algorithm for offensive agent.
+                        True is minimax and False is alpha-beta.
+        isMinimaxOffensive(bool):boolean variable indicates whether it's using minimax or alpha-beta pruning algorithm for defensive agent.
                         True is minimax and False is alpha-beta.
         output:
         bestMove(list of tuple): list of bestMove coordinates at each step
@@ -505,12 +529,12 @@ class ultimateTicTacToe:
         if isMinimaxOffensive:
             maxPlayerSearch = lambda boardIdx: self.minimax(0, boardIdx, True, returnCord=True)
         else:
-            maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, True, returnCord=True)
+            maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -inf, inf, True, returnCord=True)
         
         if isMinimaxDefensive:
             minPlayerSearch = lambda boardIdx: self.minimax(0, boardIdx, False, returnCord=True)
         else:
-            minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, False, returnCord=True)
+            minPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -inf, inf, False, returnCord=True)
         
         # set evaluation
         self.maxEvalFunc = lambda: self.evaluatePredifined(True)
@@ -525,7 +549,7 @@ class ultimateTicTacToe:
 
         return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
 
-    def playGameYourAgent(self,maxFirst=True):
+    def playGameYourAgent(self):
         """
         This function implements the processes of the game of your own agent vs predifined offensive agent.
         input args:
@@ -534,6 +558,9 @@ class ultimateTicTacToe:
         gameBoards(list of 2d lists): list of game board positions at each move
         winner(int): 1 for maxPlayer is the winner, -1 for minPlayer is the winner, and 0 for tie.
         """
+        maxFirst = random.choice([True, False])
+        self.startBoardIdx=random.randint(0,8)
+
         # maxPlayer keeps same strategy
         maxPlayerSearch = lambda boardIdx: self.alphabeta(0, boardIdx, -1000000, 1000000, True, returnCord=True)
         # we replace minPlayer with our player
@@ -550,7 +577,8 @@ class ultimateTicTacToe:
         
         self._printGameInfo(maxFirst)
 
-        return self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
+        gameBoards,bestMove, expandedNodes, bestValue, winner = self._playGameAgent(maxFirst, maxPlayerSearch, minPlayerSearch)
+        return gameBoards, bestMove, winner
 
     def playGameHuman(self):
         """
@@ -575,11 +603,13 @@ class ultimateTicTacToe:
         self.maxEvalFunc = lambda: self.evaluatePredifined(True)
         self.minEvalFunc = lambda: self.evaluateDesigned(False)
 
-        self._playGameAgent(True, maxPlayerSearch, minPlayerSearch)
+        gameBoards,bestMove, expandedNodes, bestValue, winner = self._playGameAgent(True, maxPlayerSearch, minPlayerSearch)
+
+        return gameBoards, bestMove, winner
 
 def playPredefinedAgents():
     uttt=ultimateTicTacToe()
-    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(True, True, True)
+    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGamePredifinedAgent(False, False, False)
 
     uttt.printGameBoard()
     print ("bestMove:", bestMove)
@@ -592,34 +622,42 @@ def playPredefinedAgents():
     else:
         print("Tie. No winner:(")
 
-def playMyAgent():
-    myAgentScore = 0
-    maxAgentScore = 0
-    for maxFirst in (True, False):
-        for i in range(0,9):
-                uttt=ultimateTicTacToe()
-                uttt.startBoardIdx = i
-                gameBoards,bestMove, expandedNodes, bestValue, winner=uttt.playGameYourAgent(maxFirst)
-                uttt.printGameBoard()
-                # print ("bestMove:", bestMove)
-                # print ("expandedNodes:", expandedNodes)
-                # print ("bestValues:", bestValue)
-                print (winner)
-                if winner == 1:
-                    maxAgentScore += 1
-                elif winner == -1:
-                    myAgentScore += 1
-                else:
-                    print("Tie. No winner:(")
-    print ("myAgentScore:", myAgentScore)
-    print ("maxAgentScore:", maxAgentScore)
+# def playMyAgentAllRounds():
+#     myAgentScore = 0
+#     maxAgentScore = 0
+#     for maxFirst in (True, False):
+#         for i in range(0,9):
+#                 uttt=ultimateTicTacToe()
+#                 uttt.startBoardIdx = i
+#                 print ("startBoardIdx:", uttt.startBoardIdx)
+#                 gameBoards,bestMove, winner=uttt.playGameYourAgent(maxFirst)
+#                 # print (bestMove)
+#                 print ("winner", "minAgent" if winner == -1 else "maxAgent")
+#                 print ()
+#                 if winner == 1:
+#                     maxAgentScore += 1
+#                 elif winner == -1:
+#                     myAgentScore += 1
+#                 else:
+#                     print("Tie. No winner:(")
+#     print ("myAgentScore:", myAgentScore)
+#     print ("maxAgentScore:", maxAgentScore)
+
+def playMyAgent1Round():
+    
+    uttt=ultimateTicTacToe()
+    gameBoards,bestMove, winner=uttt.playGameYourAgent()
+    uttt.printGameBoard()
+    print ("startBoardIdx:", uttt.startBoardIdx)
+    print ("winner", "minAgent" if winner == -1 else "maxAgent")
+
 
 
 def playHuman():
     uttt=ultimateTicTacToe()
-    gameBoards,bestMove, expandedNodes, bestValue, winner = uttt.playGameHuman()
+    gameBoards,bestMove, winner = uttt.playGameHuman()
 
 if __name__=="__main__":
     # playPredefinedAgents()
-    playMyAgent()
+    playMyAgent1Round()
     # playHuman()
