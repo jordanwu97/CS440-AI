@@ -1,8 +1,12 @@
-temp = np.zeros((self.feature_dim,self.num_value,self.num_class))
-for example_idx in range(train_set.shape[0]):
-	label = train_label[example_idx]
-	image = train_set[example_idx]
-	for pixel_idx in range(train_set.shape[1]):
-		temp[pixel_idx][image[pixel_idx]][label] += 1
+example_arange = np.zeros(train_set.shape)
+pixel_arange = np.zeros(train_set.shape)
 
-print (np.all(np.equal(self.likelihood, temp)))
+for i in range(train_set.shape[0]):
+	example_arange[i,:] = i
+
+for i in range(train_set.shape[1]):
+	pixel_arange[:,i] = i
+
+print (example_arange)
+
+self.feature[pixel_idx][train_set[example_idx][pixel_idx]][train_label[example_idx]] += 1

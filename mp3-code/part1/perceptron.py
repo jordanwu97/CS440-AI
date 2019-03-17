@@ -27,8 +27,23 @@ class MultiClassPerceptron(object):
 		    train_label(numpy.ndarray): training labels with a dimension of (# of examples, )
 		"""
 
-		# YOUR CODE HERE
-		pass
+		num_examples = train_set.shape[0]
+		num_dimensions = train_set.shape[1]
+		num_class = self.w.shape[1]
+		
+		# onehot matrix for given y
+		y = np.zeros((train_label.shape[0], self.w.shape[1]))
+		y[np.arange(y.shape[0]), train_label] = 2
+		y -= 1
+
+		# add biasing term for each example
+		train_set_expanded = np.c_[train_set, np.ones(train_set.shape[0])]
+
+		# calculate yhat
+		for epoch in range(500):
+			learn_rate = 1/(epoch + 1)
+			yhat = np.sign(np.matmul(train_set_expanded, self.w))
+			self.w += np.matmul(np.transpose(train_set_expanded),y - yhat) * learn_rate
 
 	def test(self,test_set,test_label):
 		""" Test the trained perceptron model (self.w) using testing dataset. 
@@ -45,10 +60,18 @@ class MultiClassPerceptron(object):
 		"""    
 
 		# YOUR CODE HERE
-		accuracy = 0 
 		pred_label = np.zeros((len(test_set)))
 
-		pass
+		test_set_biased = np.c_[test_set, np.ones(test_set.shape[0])]
+		yhat = np.matmul(test_set_biased,self.w)
+		
+		pred_label = np.argmax(yhat, axis=1)
+		print (pred_label)
+		print (yhat)
+
+		accuracy = np.sum(np.equal(test_label,pred_label)) / len(test_set)
+
+		print ("accuracy:", accuracy)
 		
 		return accuracy, pred_label
 
@@ -57,7 +80,7 @@ class MultiClassPerceptron(object):
 		""" 
 
 		np.save(weight_file,self.w)
-
+ 
 	def load_model(self, weight_file):
 		""" Load the trained model parameters 
 		""" 

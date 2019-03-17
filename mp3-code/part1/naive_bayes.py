@@ -67,7 +67,6 @@ class NaiveBayes(object):
                                  + count)])
 
             # for each pixel in the batch...
-
             for pixelIdx in range(self.feature_dim):
                 pslice = batch[pixelIdx]
 
@@ -84,21 +83,15 @@ class NaiveBayes(object):
             base += count
 
         # laplace smoothing
-
         k = 0.4
         self.likelihood += k
 
-        # do division
-
-        for classIdx in range(self.num_class):
-
-            # likelihood = (# of times pixel i has value f in training examples from this class) / (Total # of training examples from this class)
-
-            self.likelihood[:][:][classIdx] /= self.prior[classIdx]
-
-            # prior = Total # of training example from this class / Total # of training example
-
-            self.prior[classIdx] /= train_label.shape[0]
+        # do divisions
+        classIdx = np.arange(self.num_class)
+        # likelihood = (# of times pixel i has value f in training examples from this class) / (Total # of training examples from this class)
+        self.likelihood[:][:][classIdx] /= self.prior[classIdx]
+        # prior = Total # of training example from this class / Total # of training example
+        self.prior[classIdx] /= train_label.shape[0]
 
         # apply logrithm
 
@@ -131,14 +124,10 @@ class NaiveBayes(object):
         for classIdx in range(self.num_class):
             likelyhoodCurClass = self.likelihood[:, :, classIdx]
             subBox = box[:, classIdx, :]
-            for pixelIdx in range(self.feature_dim):
-
-                # retrieve likelyhood from test_sets pixel value
-
-                subBox[:, pixelIdx] = likelyhoodCurClass[pixelIdx,
-                        test_set[:, pixelIdx]]
-            subBox[:, self.feature_dim] = np.full(len(test_set),
-                    self.prior[classIdx])
+            # retrieve likelyhood from test_sets pixel value
+            # for pixelIdx in range(self.feature_dim):
+            subBox[:, np.arange(self.feature_dim)] = likelyhoodCurClass[np.arange(self.feature_dim), test_set[:, np.arange(self.feature_dim)]]
+            subBox[:, self.feature_dim] = np.full(len(test_set), self.prior[classIdx])
 
         box = np.sum(box, axis=2)
         box = np.argmax(box, axis=1)
@@ -183,5 +172,6 @@ class NaiveBayes(object):
                 likelihood.shape[2]))
     
         feature_likelihoods = np.sum(likelihood[:,128:,:],axis=1)
+        print (feature_likelihoods[:,0])
 
         return feature_likelihoods
