@@ -1,5 +1,8 @@
 import numpy as np
 
+def sigmoid(x):
+	return 1/(1+np.exp(-x))
+
 class MultiClassPerceptron(object):
 	def __init__(self,num_class,feature_dim):
 		"""Initialize a multi class perceptron model. 
@@ -37,13 +40,14 @@ class MultiClassPerceptron(object):
 		y -= 1
 
 		# add biasing term for each example
-		train_set_expanded = np.c_[train_set, np.ones(train_set.shape[0])]
+		train_set_biased = np.c_[train_set, np.ones(train_set.shape[0])]
 
 		# calculate yhat
-		for epoch in range(500):
+		for epoch in range(100):
+			# print (epoch)
 			learn_rate = 1/(epoch + 1)
-			yhat = np.sign(np.matmul(train_set_expanded, self.w))
-			self.w += np.matmul(np.transpose(train_set_expanded),y - yhat) * learn_rate
+			yhat = np.sign(np.matmul(train_set_biased, self.w))
+			self.w += np.matmul(np.transpose(train_set_biased),y - yhat) * learn_rate
 
 	def test(self,test_set,test_label):
 		""" Test the trained perceptron model (self.w) using testing dataset. 

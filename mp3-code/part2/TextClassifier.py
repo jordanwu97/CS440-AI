@@ -7,6 +7,9 @@
 #
 # Created by Dhruv Agarwal (dhruva2@illinois.edu) on 02/21/2019
 
+from math import log, inf
+from collections import Counter
+
 """
 You should only modify code within this file -- the unrevised staff files will be used for all other
 files and classes when code is run, so be careful to not modify anything else.
@@ -31,10 +34,39 @@ class TextClassifier(object):
             Then train_labels := [0,1]
         """
 
-        # TODO: Write your code here
-        pass
+        # count priors
+        self.prior = { label:0 for label in set(train_label) }
 
-    def predict(self, x_set, dev_label,lambda_mix=0.0):
+        # likelihood dictonary, indexed by class->word->count
+        self.likelihood = { label:{} for label in self.prior.keys() }
+
+
+        # Count likelihoods
+        for sentence, label in zip(train_set, train_label):
+            self.prior[label] += 1
+            for word in sentence:
+                # increment count of a specific word in specific class
+                if word in self.likelihood[label].keys():
+                    (self.likelihood[label])[word] += 1
+                else:
+                    (self.likelihood[label])[word] = 2
+
+        # add additional label for unseen word
+        for label in self.prior:
+            (self.likelihood[label])["_"] = 1
+
+        for label in self.prior:
+
+            # divide count for a specific word in a class by all words in class
+            total_num_word_in_class = sum(self.likelihood[label].values())
+            for word, count in self.likelihood[label].items():
+                self.likelihood[label][word] = count / total_num_word_in_class
+            
+            # divide priors by total len of training set and apply log
+            self.prior[label] = self.prior[label] / len(train_label)
+
+
+    def predict(self, dev_set, dev_label,lambda_mix=0.0):
         """
         :param dev_set: List of list of words corresponding with each text in dev set that we are testing on
               It follows the same format as train_set
@@ -48,9 +80,20 @@ class TextClassifier(object):
 
         accuracy = 0.0
         result = []
+        
+        for sentence in dev_set:
+            
+            Cval = { label:0 for label in self.prior }
+            for label in self.prior:
+                Cval[label] += log(self.prior[label])
+                Cval[label] += sum(( log(self.likelihood[label][word]) for word in sentence if word in self.likelihood[label]  ))
+                Cval[label] += sum(( log(self.likelihood[label]["_"]) for word in sentence if word not in self.likelihood[label] ))
+            
+            Cstar = max(Cval, key=lambda k: Cval[k])
+            result.append(Cstar)
 
-        # TODO: Write your code here
-        pass
+
+        accuracy = sum( 1 for i in range(len(result)) if result[i] == dev_label[i] ) / len(result)
 
         return accuracy,result
 
