@@ -42,10 +42,11 @@ class MultiClassPerceptron(object):
 		# add biasing term for each example
 		train_set_biased = np.c_[train_set, np.ones(train_set.shape[0])]
 
+		learn_rate = 0.5
+
 		# calculate yhat
-		for epoch in range(100):
-			# print (epoch)
-			learn_rate = 1/(epoch + 1)
+		for epoch in range(200):
+			print (epoch)
 			yhat = np.sign(np.matmul(train_set_biased, self.w))
 			self.w += np.matmul(np.transpose(train_set_biased),y - yhat) * learn_rate
 
@@ -70,8 +71,6 @@ class MultiClassPerceptron(object):
 		yhat = np.matmul(test_set_biased,self.w)
 		
 		pred_label = np.argmax(yhat, axis=1)
-		print (pred_label)
-		print (yhat)
 
 		accuracy = np.sum(np.equal(test_label,pred_label)) / len(test_set)
 

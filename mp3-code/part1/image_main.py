@@ -116,10 +116,10 @@ if __name__ == '__main__':
     # Train model.
     perceptron.train(x_train,y_train)
     # Visualize the learned perceptron weights. 
-    plot_visualization(perceptron.w[:-1,:], class_names, None)
+    # plot_visualization(perceptron.w[:-1,:], class_names, None)
     # Classify the test sets. 
     accuracy, y_pred = perceptron.test(x_test,y_test)
     # Plot confusion matrix.
-    plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
-                      title='Confusion matrix, with normalization')
-    plt.show()    
+    # plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
+    #                   title='Confusion matrix, with normalization')
+    # plt.show()    
