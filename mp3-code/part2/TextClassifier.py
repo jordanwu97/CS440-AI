@@ -14,6 +14,7 @@ from collections import Counter
 You should only modify code within this file -- the unrevised staff files will be used for all other
 files and classes when code is run, so be careful to not modify anything else.
 """
+
 class TextClassifier(object):
     def __init__(self):
         """Implementation of Naive Bayes for multiclass classification
@@ -22,6 +23,60 @@ class TextClassifier(object):
         and Unigram model in the mixture model. Hard Code the value you find to be most suitable for your model
         """
         self.lambda_mixture = 0.0
+
+    def fit_2(self, train_set, train_label):
+        
+        from collections import Counter
+
+        self.prior = dict(Counter(train_label))
+
+        self.likelihood = { label:{} for label in self.prior.keys() }
+        
+        for sentence, label in zip(train_set, train_label):
+            for word in set(sentence):
+                # increment count of a specific word in specific class
+                if word not in self.likelihood[label].keys():
+                    self.likelihood[label][word] = 0
+                self.likelihood[label][word] += 1
+
+        for label in self.prior:
+            # (1 + #documents containing w in class) / (2 + count of all documents for class)
+            for word, count in self.likelihood[label].items():
+                self.likelihood[label][word] = (1 + count) / (self.prior[label] + 2)
+            
+            # divide priors by total len of training set and apply log
+            self.prior[label] = self.prior[label] / len(train_label)
+
+
+    def predict_2(self, dev_set, dev_label,lambda_mix=0.0):
+        accuracy = 0.0
+        result = []
+        
+        for sentence in dev_set:
+            
+            Cval = { label:0 for label in self.prior }
+            for label in self.prior:
+                
+                sentence_set = set(sentence)
+
+                # Cval[label] += log(self.prior[label])
+
+                for word in self.likelihood[label].keys():
+                    if word in sentence_set:
+                        Cval[label] += log(self.likelihood[label][word])
+                    else:
+                        Cval[label] += log(1 - self.likelihood[label][word])
+            
+            Cstar = max(Cval, key=lambda k: Cval[k])
+            # print (sentence)
+            # print (dev_label[0])
+            # exit()
+            result.append(Cstar)
+
+        accuracy = sum( 1 for i in range(len(result)) if result[i] == dev_label[i] ) / len(result)
+
+        return accuracy,result
+
 
     def fit(self, train_set, train_label):
         """
@@ -49,7 +104,7 @@ class TextClassifier(object):
                 if word in self.likelihood[label].keys():
                     (self.likelihood[label])[word] += 1
                 else:
-                    (self.likelihood[label])[word] = 2
+                    (self.likelihood[label])[word] = 100
 
         # add additional label for unseen word
         for label in self.prior:
