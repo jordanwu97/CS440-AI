@@ -15,6 +15,9 @@ You should only modify code within this file -- the unrevised staff files will b
 files and classes when code is run, so be careful to not modify anything else.
 """
 
+# Smoothing Functions from : http://www.cs.cornell.edu/courses/cs4740/2014sp/lectures/smoothing+backoff.pdf
+
+
 class TextClassifier(object):
     def __init__(self):
         """Implementation of Naive Bayes for multiclass classification
@@ -26,34 +29,35 @@ class TextClassifier(object):
 
     def fit_bigram(self, train_set, train_label):
 
-
-        self.count_bigram_w1w2 = { label:{ w_1:{} for w_1 in self.unigram_count_w[label] } for label in self.unigram_count_w }
+        self.count_w1w2 = { label:{ w_1:{} for w_1 in self.count_w[label] } for label in self.count_w }
 
         # count(w_2,w_1)
         for sentence, label in zip(train_set, train_label):
             for w_idx in range(1,len(sentence)):
                 # bigram model 
-                w_1 = sentence[w_idx - 1]
-                w_2 = sentence[w_idx]
+                w1w2 = sentence[w_idx - 1], sentence[w_idx]
 
-                self.count_bigram_w1w2[label][(w_1,w_2)] = self.count_bigram_w1w2[label].get((w_1,w_2), 0) + 1
+                self.count_w1w2[label][w1w2] = self.count_w1w2[label].get(w1w2, 0) + 1
         
     def predict_bigram(self, sentence):
 
         P_bigram = { label:0 for label in self.prior }
 
+        smoothing_term = 0.1
+
         for label in self.prior:
-            # multiply prior and P(w_1)
+            # multiply prior
             P_bigram[label] += log(self.prior[label])
-
-            P_bigram[label] += log((self.unigram_count_w[label].get(sentence[0], 0) + 10) / (sum(self.unigram_count_w[label].values()) + len(self.V)))
+            # P(w_1)
+            P_bigram[label] += log((self.count_w[label].get(sentence[0], 0) + 10) / (sum(self.count_w[label].values()) + len(self.V)))
             
-            bigram_sentence = [(sentence[i-1],sentence[i]) for i in range(1, len(sentence))]
+            bigram_sentence = ((sentence[i-1],sentence[i]) for i in range(1, len(sentence)))
 
-            def p(w1,w2):
-                return log((self.count_bigram_w1w2[label].get((w1,w2),0) + 1) / (self.unigram_count_w[label].get(w1,0) + len(self.V)))
+            def p(w1w2):
+                w1,w2 = w1w2
+                return log((self.count_w1w2[label].get(w1w2,0) + smoothing_term) / (self.count_w[label].get(w1,0) + len(self.V) * smoothing_term))
 
-            P_bigram[label] += sum(p(w1,w2) for (w1,w2) in bigram_sentence) 
+            P_bigram[label] += sum(p(w1w2) for w1w2 in bigram_sentence) 
 
 
         return P_bigram
@@ -74,7 +78,7 @@ class TextClassifier(object):
         self.prior = { label:0 for label in set(train_label) }
 
         # count dictonary, indexed by class->word->count
-        self.unigram_count_w = { label:{} for label in self.prior }
+        self.count_w = { label:{} for label in self.prior }
 
 
         # Count w's
@@ -82,7 +86,7 @@ class TextClassifier(object):
             self.prior[label] += 1
             for word in sentence:
                 # increment count of a specific word in specific class
-                self.unigram_count_w[label][word] = self.unigram_count_w[label].get(word,0) + 1
+                self.count_w[label][word] = self.count_w[label].get(word,0) + 1
 
         # for label in self.prior:
 
@@ -97,7 +101,7 @@ class TextClassifier(object):
         # Vocabulary set
         self.V = set()
         for label in self.prior:
-            self.V |= set(self.unigram_count_w[label].keys())
+            self.V |= set(self.count_w[label].keys())
 
         self.fit_bigram(train_set, train_label)
 
@@ -115,7 +119,7 @@ class TextClassifier(object):
 
         result = []
 
-        V = len(self.V)
+        smoothing_term = 0.1
         
         for i, sentence in enumerate(dev_set):
             
@@ -124,10 +128,10 @@ class TextClassifier(object):
             for label in self.prior:
                 P_unigram[label] += log(self.prior[label])
 
-                N = sum(self.unigram_count_w[label].values())
+                N = sum(self.count_w[label].values())
 
                 def p(w):
-                    return log((self.unigram_count_w[label].get(w, 0) + 10) / (N + V))
+                    return log((self.count_w[label].get(w, 0) + smoothing_term) / (N + len(self.V) * smoothing_term ))
 
                 P_unigram[label] += sum(p(w) for w in sentence)
 
@@ -138,10 +142,9 @@ class TextClassifier(object):
             def argMax(A):
                 return max(A, key=lambda k: A[k])
 
-            self.lambda_mixture = 0.5
 
             # apply mixture
-            P_mix = {label:(1-self.lambda_mixture)*exp(P_unigram[label]) + (self.lambda_mixture)*exp(P_bigram[label]) for label in P_mix}
+            P_mix = {label:(1-lambda_mix)*exp(P_unigram[label]) + (lambda_mix)*exp(P_bigram[label]) for label in P_mix}
 
             # append Cstar
             result.append(argMax(P_mix))
