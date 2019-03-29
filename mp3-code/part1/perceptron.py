@@ -42,15 +42,12 @@ class MultiClassPerceptron(object):
 		# add biasing term for each example
 		train_set_biased = np.c_[train_set, np.ones(train_set.shape[0])]
 
-		learn_rate = 0.5
-
-		# multiply learn rate directly to train_set to prevent redundant operations when training
-		train_set_biased_learn_rate = train_set_biased * learn_rate
-
 		# calculate yhat
-		for epoch in range(250):
+		for epoch in range(150):
+			# superjank decreasing learning rate lol?
+			learn_rate = 10/np.sqrt((epoch+1))
 			yhat = np.sign(np.matmul(train_set_biased, self.w))
-			self.w += np.matmul(np.transpose(train_set_biased_learn_rate),y - yhat)
+			self.w += np.matmul(np.transpose(train_set_biased),y - yhat) * learn_rate
 
 	def test(self,test_set,test_label):
 		""" Test the trained perceptron model (self.w) using testing dataset. 
