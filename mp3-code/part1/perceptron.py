@@ -43,7 +43,7 @@ class MultiClassPerceptron(object):
 		train_set_biased = np.c_[train_set, np.ones(train_set.shape[0])]
 
 		# calculate yhat
-		for epoch in range(150):
+		for epoch in range(100):
 			# superjank decreasing learning rate lol?
 			learn_rate = 10/np.sqrt((epoch+1))
 			yhat = np.sign(np.matmul(train_set_biased, self.w))
