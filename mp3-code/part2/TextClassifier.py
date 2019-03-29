@@ -7,7 +7,7 @@
 #
 # Created by Dhruv Agarwal (dhruva2@illinois.edu) on 02/21/2019
 
-from math import log, inf
+from math import log,exp
 from collections import Counter
 
 """
@@ -27,36 +27,36 @@ class TextClassifier(object):
     def fit_bigram(self, train_set, train_label):
         self.bigram_likelihood = { label:{ w_1:{} for w_1 in self.likelihood[label] } for label in self.likelihood }
 
+        # count(w_2|w_1)
         for sentence, label in zip(train_set, train_label):
-            self.prior[label] += 1
             for w_idx in range(1,len(sentence)):
                 # bigram model 
                 w_1 = sentence[w_idx - 1]
-                w_2 = sentence[w_idx - 1]
+                w_2 = sentence[w_idx]
 
                 if w_2 not in self.bigram_likelihood[label][w_1]:
                     self.bigram_likelihood[label][w_1][w_2] = 1
-
                 self.bigram_likelihood[label][w_1][w_2] += 1
         
-        t_all = 0
-
         for label in self.bigram_likelihood:
             for w_1 in self.bigram_likelihood[label]:
                 
                 # add additional label for unseen w_2
-                self.bigram_likelihood[label][w_1]["_"] = 0.1
+                self.bigram_likelihood[label][w_1]["_"] = 1
 
-                t = sum(self.bigram_likelihood[label][w_1].values())
-                t_all += t
+                total_count_w_2 = sum(self.bigram_likelihood[label][w_1].values())
 
                 for w_2 in self.bigram_likelihood[label][w_1]:
-                    self.bigram_likelihood[label][w_1][w_2] = self.bigram_likelihood[label][w_1][w_2] / t
+                    self.bigram_likelihood[label][w_1][w_2] = self.bigram_likelihood[label][w_1][w_2] / total_count_w_2
+
+        V = set()
+        for label in self.likelihood:
+            V |= set(self.likelihood[label].keys())
+        
 
         for label in self.bigram_likelihood:
-            self.bigram_likelihood[label]["_"]["_"] = min( self.bigram_likelihood[label][w_1]["_"] for w_1 in self.bigram_likelihood[label])
+            self.bigram_likelihood[label]["_"]["_"] = 1 / (len(V) ** 2)
                 
-        print (self.bigram_likelihood[1]["abbott"])
 
     def fit(self, train_set, train_label):
         """
@@ -92,8 +92,8 @@ class TextClassifier(object):
 
             # divide count for a specific word in a class by all words in class
             total_num_word_in_class = sum(self.likelihood[label].values())
-            for word, count in self.likelihood[label].items():
-                self.likelihood[label][word] = count / total_num_word_in_class
+            for word in self.likelihood[label]:
+                self.likelihood[label][word] = self.likelihood[label][word] / total_num_word_in_class
             
             # divide priors by total len of training set and apply log
             self.prior[label] = self.prior[label] / len(train_label)
@@ -113,8 +113,7 @@ class TextClassifier(object):
             
             P[label] += sum(log(self.bigram_likelihood[label][w_1][w_2]) for (w_1, w_2) in bigram_sentence if (w_1 in self.bigram_likelihood[label] and w_2 in self.bigram_likelihood[label][w_1] ))
             P[label] += sum(log(self.bigram_likelihood[label][w_1]["_"]) for (w_1, w_2) in bigram_sentence if (w_1 in self.bigram_likelihood[label] and w_2 not in self.bigram_likelihood[label][w_1] ))
-            P[label] += sum(log(self.likelihood[label][w_2]) for (w_1, w_2) in bigram_sentence if (w_1 not in self.bigram_likelihood[label] and w_2 in self.likelihood[label]))
-            P[label] += sum(log(self.bigram_likelihood[label]["_"]["_"]) for (w_1, w_2) in bigram_sentence if (w_1 not in self.bigram_likelihood[label] and w_2 not in self.likelihood[label] ))
+            P[label] += sum(log(self.bigram_likelihood[label]["_"]["_"]) for (w_1, w_2) in bigram_sentence if (w_1 not in self.bigram_likelihood[label] ))
 
         return P
 
@@ -130,28 +129,35 @@ class TextClassifier(object):
                 result (list) : predicted class for each text
         """
 
-        accuracy = 0.0
         result = []
         
-        for sentence in dev_set:
+        for i, sentence in enumerate(dev_set):
             
-            P = { label:0 for label in self.prior }
+            P_unigram = { label:0 for label in self.prior }
 
             for label in self.prior:
-                P[label] += log(self.prior[label])
-                P[label] += sum(( log(self.likelihood[label][word]) for word in sentence if word in self.likelihood[label]  ))
-                P[label] += sum(( log(self.likelihood[label]["_"]) for word in sentence if word not in self.likelihood[label] ))
+                P_unigram[label] += log(self.prior[label])
+                P_unigram[label] += sum(( log(self.likelihood[label][word]) for word in sentence if word in self.likelihood[label]  ))
+                P_unigram[label] += sum(( log(self.likelihood[label]["_"]) for word in sentence if word not in self.likelihood[label] ))
             
             P_bigram = self.predict_bigram(sentence)
+            
+            P_mix = { label:0 for label in self.prior }
 
-            self.lambda_mixture = 0.01
+            def argMax(A):
+                return max(A, key=lambda k: A[k])
 
-            for label in P:
-                mixed = (1-self.lambda_mixture)*P[label] + (self.lambda_mixture)*P_bigram[label]
-                P = {label:(1-self.lambda_mixture)*P[label] + (self.lambda_mixture)*P_bigram[label] for label in P}
+            # print (P_unigram, P_bigram, dev_label[i])
+            print (exp(P_unigram[1]),exp(P_bigram[1]))
+            # exit()
 
-            Cstar = max(P, key=lambda k: P[k])
-            result.append(Cstar)
+            self.lambda_mixture = 0.9
+
+            # apply mixture
+            P_mix = {label:(1-self.lambda_mixture)*exp(P_unigram[label]) + (self.lambda_mixture)*exp(P_bigram[label]) for label in P_mix}
+
+            # append Cstar
+            result.append(argMax(P_mix))
 
 
         accuracy = sum( 1 for i in range(len(result)) if result[i] == dev_label[i] ) / len(result)
