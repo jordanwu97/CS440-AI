@@ -50,8 +50,6 @@ class NaiveBayes(object):
         self.prior = np.array([len(args) for args in labelArgs], dtype=float)
 
         # Rearrange train_set using sorted axis
-
-        base = 0
         for (label, args) in zip(range(self.num_class), labelArgs):
 
             # cut a batch with same label out from arranged_train_set
@@ -68,8 +66,6 @@ class NaiveBayes(object):
 
                 # add it into likelihood
                 self.likelihood[pixelIdx,pixelVal,label] = pixelCount
-
-            base += count
 
         # laplace smoothing
         k = 0.4
