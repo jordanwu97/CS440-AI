@@ -46,7 +46,6 @@ class MultiClassPerceptron(object):
 
 		# calculate yhat
 		for epoch in range(200):
-			print (epoch)
 			yhat = np.sign(np.matmul(train_set_biased, self.w))
 			self.w += np.matmul(np.transpose(train_set_biased),y - yhat) * learn_rate
 

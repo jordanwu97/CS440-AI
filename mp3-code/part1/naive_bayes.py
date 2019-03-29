@@ -63,8 +63,7 @@ class NaiveBayes(object):
 
             # cut a batch with same label out from arranged_train_set
 
-            batch = np.transpose(arranged_train_set[int(base):int(base
-                                 + count)])
+            batch = np.transpose(arranged_train_set[int(base):int(base+count)])
 
             # for each pixel in the batch...
             for pixelIdx in range(self.feature_dim):
@@ -72,13 +71,10 @@ class NaiveBayes(object):
 
                 # count the unique values
 
-                (pixelVal, pixelCount) = np.unique(pslice,
-                        return_counts=True)
+                (pixelVal, pixelCount) = np.unique(pslice, return_counts=True)
 
                 # add it into likelihood
-
-                for (pV, pC) in zip(pixelVal, pixelCount):
-                    self.likelihood[pixelIdx][pV][label] += pC
+                self.likelihood[pixelIdx,pixelVal,label] = pixelCount
 
             base += count
 
@@ -86,15 +82,16 @@ class NaiveBayes(object):
         k = 0.4
         self.likelihood += k
 
+        print (self.likelihood[10,1,0])
+
         # do divisions
-        classIdx = np.arange(self.num_class)
         # likelihood = (# of times pixel i has value f in training examples from this class) / (Total # of training examples from this class)
-        self.likelihood[:][:][classIdx] /= self.prior[classIdx]
-        # prior = Total # of training example from this class / Total # of training example
-        self.prior[classIdx] /= train_label.shape[0]
+        for classIdx in range(self.num_class):
+            self.likelihood[:,:,classIdx] /= self.prior[classIdx]
+            # prior = Total # of training example from this class / Total # of training example
+            self.prior[classIdx] /= train_label.shape[0]
 
         # apply logrithm
-
         self.likelihood = np.log(self.likelihood)
         self.prior = np.log(self.prior)
 
@@ -125,7 +122,6 @@ class NaiveBayes(object):
             likelyhoodCurClass = self.likelihood[:, :, classIdx]
             subBox = box[:, classIdx, :]
             # retrieve likelyhood from test_sets pixel value
-            # for pixelIdx in range(self.feature_dim):
             subBox[:, np.arange(self.feature_dim)] = likelyhoodCurClass[np.arange(self.feature_dim), test_set[:, np.arange(self.feature_dim)]]
             subBox[:, self.feature_dim] = np.full(len(test_set), self.prior[classIdx])
 
@@ -134,8 +130,8 @@ class NaiveBayes(object):
 
         accuracy = np.sum(np.equal(box, test_label)) / len(test_set)
         pred_label = box
-
-        print (accuracy)
+        
+        print ("Accuracy:", accuracy)
 
         return (accuracy, pred_label)
 
@@ -170,8 +166,10 @@ class NaiveBayes(object):
 
         feature_likelihoods = np.zeros((likelihood.shape[0],
                 likelihood.shape[2]))
+
+        sorted_likelihood = np.sort(likelihood, axis=1)
     
-        feature_likelihoods = np.sum(likelihood[:,128:,:],axis=1)
-        print (feature_likelihoods[:,0])
+        feature_likelihoods = np.sum(sorted_likelihood[:,128:,:],axis=1)
+        # print (feature_likelihoods[:,0])
 
         return feature_likelihoods
