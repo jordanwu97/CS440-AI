@@ -45,13 +45,9 @@ class NaiveBayes(object):
 ........    train_label(numpy.ndarray): training labels with a dimension of (# of examples, ) 50000
 ........"""
 
-        # Count priors
-
-        (label, count) = np.unique(train_label, return_counts=True)
-        for (l, c) in zip(label, count):
-            self.prior[l] = int(c)
-
+        # Count priors, find args with label
         labelArgs = [np.nonzero(train_label == l)[0] for l in range(self.num_class)]
+        self.prior = np.array([len(args) for args in labelArgs], dtype=float)
 
         # Rearrange train_set using sorted axis
 
