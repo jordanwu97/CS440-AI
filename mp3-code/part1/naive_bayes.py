@@ -51,19 +51,16 @@ class NaiveBayes(object):
         for (l, c) in zip(label, count):
             self.prior[l] = int(c)
 
-        # Sort axis
-
-        label_sort_axis = np.argsort(train_label)
-        arranged_train_set = train_set[label_sort_axis, :]
+        labelArgs = [np.nonzero(train_label == l)[0] for l in range(self.num_class)]
 
         # Rearrange train_set using sorted axis
 
         base = 0
-        for (label, count) in zip(range(self.num_class), self.prior):
+        for (label, args) in zip(range(self.num_class), labelArgs):
 
             # cut a batch with same label out from arranged_train_set
 
-            batch = np.transpose(arranged_train_set[int(base):int(base+count)])
+            batch = np.transpose(train_set[args,:])
 
             # for each pixel in the batch...
             for pixelIdx in range(self.feature_dim):
@@ -81,8 +78,6 @@ class NaiveBayes(object):
         # laplace smoothing
         k = 0.4
         self.likelihood += k
-
-        print (self.likelihood[10,1,0])
 
         # do divisions
         # likelihood = (# of times pixel i has value f in training examples from this class) / (Total # of training examples from this class)
