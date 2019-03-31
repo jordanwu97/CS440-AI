@@ -10,7 +10,7 @@
 import csv
 from TextClassifier import TextClassifier
 import string
-from plotting import plot_confusion_matrix
+# from plotting import plot_confusion_matrix
 
 """
 This file contains the main application that is run for this part of the MP.
@@ -97,9 +97,7 @@ if __name__ == '__main__':
     MNB = TextClassifier()
     MNB.fit(x_train, y_train)
 
-    accuracy,pred = MNB.predict(x_test, y_test, 1.0)
+    accuracy,pred = MNB.predict(x_test, y_test, 0.0)
     compute_results(y_test,pred)
-
-    plot_confusion_matrix(y_test, pred, list(range(1,15)))
-
+    
     print("Accuracy {0:.4f}".format(accuracy))

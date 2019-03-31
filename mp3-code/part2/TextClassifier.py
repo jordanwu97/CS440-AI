@@ -8,7 +8,6 @@
 # Created by Dhruv Agarwal (dhruva2@illinois.edu) on 02/21/2019
 
 from math import log,exp
-from collections import Counter
 
 """
 You should only modify code within this file -- the unrevised staff files will be used for all other
@@ -97,8 +96,16 @@ class TextClassifier(object):
 
         self.fit_bigram(train_set, train_label)
 
-        for label in self.count_w:
-            print (label, ":", argMax(self.count_w[label]))
+        #### PRINT TOP 20 FEATURE
+        # for label in self.count_w:
+        #     temp = dict(self.count_w[label])
+        #     words = []
+        #     for i in range(20):
+        #         word = argMax(temp)
+        #         words.append(word)
+        #         del temp[word]
+        #     print (label, ":", words)
+
 
 
     def predict(self, dev_set, dev_label,lambda_mix=0.0):
@@ -123,6 +130,7 @@ class TextClassifier(object):
 
             for label in self.prior:
                 
+                # multiply Priors
                 P_unigram[label] += log(self.prior[label])
 
                 N = sum(self.count_w[label].values())
@@ -130,12 +138,12 @@ class TextClassifier(object):
                 def p(w):
                     return log((self.count_w[label].get(w, 0) + smoothing_term) / (N + len(self.V) * smoothing_term ))
 
+                # multiply Likelihoods
                 P_unigram[label] += sum(p(w) for w in sentence)
 
             P_bigram = self.predict_bigram(sentence)
             
             P_mix = { label:0 for label in self.prior }
-
 
             # apply mixture
             P_mix = {label:(1-lambda_mix)*exp(P_unigram[label]) + (lambda_mix)*exp(P_bigram[label]) for label in P_mix}
