@@ -100,6 +100,6 @@ if __name__ == '__main__':
     accuracy,pred = MNB.predict(x_test, y_test, 1.0)
     compute_results(y_test,pred)
 
-    plot_confusion_matrix(y_test, pred, list(range(1:15)))
+    plot_confusion_matrix(y_test, pred, list(range(1,15)))
 
     print("Accuracy {0:.4f}".format(accuracy))
