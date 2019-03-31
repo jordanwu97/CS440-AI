@@ -55,6 +55,10 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
     print(cm)
 
+    classification_per_item = [cm[i][i] for i in range(len(cm))]
+
+    print ("Classification Rate Per Item:", classification_per_item)
+
     fig, ax = plt.subplots()
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
@@ -110,6 +114,10 @@ if __name__ == '__main__':
                       title='Confusion matrix, with normalization')
     plt.show()
 
+    ### EXTRA CODE FOR PLOTTING HIGHEST POSTERIOR
+    plot_visualization(NB.highestPosteriorImages, class_names, "Greys")
+    plot_visualization(NB.lowestPosteriorImages, class_names, "Greys")
+    ### END OF EXTRA CODE
     
     # Initialize perceptron model. 
     perceptron = MultiClassPerceptron(num_class,feature_dim)
@@ -123,3 +131,8 @@ if __name__ == '__main__':
     plot_confusion_matrix(y_test, y_pred, classes=class_names, normalize=True,
                       title='Confusion matrix, with normalization')
     plt.show()    
+
+    ### EXTRA CODE FOR PLOTTING HIGHEST POSTERIOR
+    plot_visualization(perceptron.highestPosteriorImages, class_names, None)
+    plot_visualization(perceptron.lowestPosteriorImages, class_names, None)
+    ### END OF EXTRA CODE

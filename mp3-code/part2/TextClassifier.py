@@ -17,6 +17,8 @@ files and classes when code is run, so be careful to not modify anything else.
 
 # Smoothing Functions from : http://www.cs.cornell.edu/courses/cs4740/2014sp/lectures/smoothing+backoff.pdf
 
+def argMax(A):
+    return max(A, key=lambda k: A[k])
 
 class TextClassifier(object):
     def __init__(self):
@@ -88,22 +90,16 @@ class TextClassifier(object):
                 # increment count of a specific word in specific class
                 self.count_w[label][word] = self.count_w[label].get(word,0) + 1
 
-        # for label in self.prior:
-
-        #     # divide count for a specific word in a class by all words in class
-        #     total_num_word_in_class = sum(self.likelihood[label].values())
-        #     for word in self.likelihood[label]:
-        #         self.likelihood[label][word] = self.likelihood[label][word] / total_num_word_in_class
-            
-        #     # divide priors by total len of training set and apply log
-        #     self.prior[label] = self.prior[label] / len(train_label)
-
         # Vocabulary set
         self.V = set()
         for label in self.prior:
             self.V |= set(self.count_w[label].keys())
 
         self.fit_bigram(train_set, train_label)
+
+        for label in self.count_w:
+            print (label, ":", argMax(self.count_w[label]))
+
 
     def predict(self, dev_set, dev_label,lambda_mix=0.0):
         """
@@ -126,6 +122,7 @@ class TextClassifier(object):
             P_unigram = { label:0 for label in self.prior }
 
             for label in self.prior:
+                
                 P_unigram[label] += log(self.prior[label])
 
                 N = sum(self.count_w[label].values())
@@ -138,9 +135,6 @@ class TextClassifier(object):
             P_bigram = self.predict_bigram(sentence)
             
             P_mix = { label:0 for label in self.prior }
-
-            def argMax(A):
-                return max(A, key=lambda k: A[k])
 
 
             # apply mixture

@@ -31,19 +31,19 @@ class MultiClassPerceptron(object):
 		"""
 
 		num_examples = train_set.shape[0]
-		num_dimensions = train_set.shape[1]
-		num_class = self.w.shape[1]
+		self.feature_dim = train_set.shape[1]
+		self.num_class = self.w.shape[1]
 		
 		# onehot matrix for given y
-		y = np.zeros((train_label.shape[0], self.w.shape[1]))
-		y[np.arange(y.shape[0]), train_label] = 2
+		y = np.zeros((num_examples, self.num_class))
+		y[np.arange(num_examples), train_label] = 2
 		y -= 1
 
 		# add biasing term for each example
-		train_set_biased = np.c_[train_set, np.ones(train_set.shape[0])]
+		train_set_biased = np.c_[train_set, np.ones(num_examples)]
 
 		# calculate yhat
-		for epoch in range(100):
+		for epoch in range(110):
 			# superjank decreasing learning rate lol?
 			learn_rate = 10/np.sqrt((epoch+1))
 			yhat = np.sign(np.matmul(train_set_biased, self.w))
@@ -73,7 +73,22 @@ class MultiClassPerceptron(object):
 
 		accuracy = np.sum(np.equal(test_label,pred_label)) / len(test_set)
 
-		print ("accuracy:", accuracy)
+		# EVALUATION
+        # get image with highest and lowest perceptron weight from each class
+		self.highestPosteriorImages = np.zeros((self.feature_dim, self.num_class))
+		self.lowestPosteriorImages = np.zeros((self.feature_dim, self.num_class))
+
+		summed = yhat
+
+		labelArgs = [np.nonzero(test_label == l)[0] for l in range(self.num_class)]
+
+		for classIdx, argsInClass in enumerate(labelArgs):
+			maxArg = np.argmax(summed[argsInClass, classIdx], axis=0)
+			minArg = np.argmin(summed[argsInClass, classIdx], axis=0)
+			self.highestPosteriorImages[:,classIdx] = (test_set[argsInClass])[maxArg]
+			self.lowestPosteriorImages[:,classIdx] = (test_set[argsInClass])[minArg]
+
+		print ("Perceptron Accuracy:", accuracy)
 		
 		return accuracy, pred_label
 

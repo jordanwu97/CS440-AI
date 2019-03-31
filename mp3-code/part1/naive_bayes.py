@@ -102,23 +102,36 @@ class NaiveBayes(object):
         accuracy = 0
         pred_label = np.zeros(len(test_set))
 
-        box = np.zeros((len(test_set), self.num_class, self.feature_dim
-                       + 1))
+        # + 1 to place prior into probabilitybox
+        probablityBox = np.zeros((len(test_set), self.num_class, self.feature_dim + 1))
 
         for classIdx in range(self.num_class):
             likelyhoodCurClass = self.likelihood[:, :, classIdx]
-            subBox = box[:, classIdx, :]
-            # retrieve likelyhood from test_sets pixel value
+            subBox = probablityBox[:, classIdx, :]
+            # retrieve likelyhood from test_sets pixel value via fancy indexing
             subBox[:, np.arange(self.feature_dim)] = likelyhoodCurClass[np.arange(self.feature_dim), test_set[:, np.arange(self.feature_dim)]]
             subBox[:, self.feature_dim] = np.full(len(test_set), self.prior[classIdx])
 
-        box = np.sum(box, axis=2)
-        box = np.argmax(box, axis=1)
+        summed = np.sum(probablityBox, axis=2)
+        pred_label = np.argmax(summed, axis=1)
 
-        accuracy = np.sum(np.equal(box, test_label)) / len(test_set)
-        pred_label = box
+        accuracy = np.sum(np.equal(pred_label, test_label)) / len(test_set)
         
-        print ("Accuracy:", accuracy)
+        print ("NB Accuracy:", accuracy)
+
+        # EVALUATION
+        # get highest and lowest posterior prob images from each class
+        self.highestPosteriorImages = np.zeros((self.feature_dim, self.num_class))
+        self.lowestPosteriorImages = np.zeros((self.feature_dim, self.num_class))
+        
+        labelArgs = [np.nonzero(test_label == l)[0] for l in range(self.num_class)]
+
+        for classIdx, argsInClass in enumerate(labelArgs):
+            maxArg = np.argmax(summed[argsInClass, classIdx], axis=0)
+            minArg = np.argmin(summed[argsInClass, classIdx], axis=0)
+            self.highestPosteriorImages[:,classIdx] = (test_set[argsInClass])[maxArg]
+            self.lowestPosteriorImages[:,classIdx] = (test_set[argsInClass])[minArg]
+        
 
         return (accuracy, pred_label)
 
