@@ -26,7 +26,7 @@ class TextClassifier(object):
         :param lambda_mixture - (Extra Credit) This param controls the proportion of contribution of Bigram
         and Unigram model in the mixture model. Hard Code the value you find to be most suitable for your model
         """
-        self.lambda_mixture = 0.5
+        self.lambda_mixture = 0.99
 
     def fit_bigram(self, train_set, train_label):
 
