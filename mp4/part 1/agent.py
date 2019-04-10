@@ -1,6 +1,7 @@
 import numpy as np
 import utils
 import random
+import math
 
 
 class Agent:
@@ -16,7 +17,7 @@ class Agent:
         self.N = utils.create_q_table()
 
         ## TEMP
-        self.step = 0
+        self.step = 1
 
     def train(self):
         self._train = True
@@ -56,7 +57,7 @@ class Agent:
 
         # convert all down to 12x12
         curSnakeHead = to12(state[0]), to12(state[1])
-        curSnakeBody = set([(to12(x), to12(y)) for x,y in state[2]])
+        curSnakeBody = [(to12(x), to12(y)) for x,y in state[2]]
         curFood = to12(state[3]), to12(state[4])
 
         def retrieveQandN(snakeHead, snakeBody, food):
@@ -87,26 +88,30 @@ class Agent:
             adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in snakeBody) for offX, offY in ((0,-1),(0,1),(-1,0),(1,0))]
 
             # retrieve current Q and N
-            Q = self.Q[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
-            N = self.N[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
+            tQ = self.Q[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
+            tN = self.N[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
 
-            return Q, N
+            return tQ, tN
 
-        curQ, curN = retrieveQandN(curSnakeHead, curSnakeBody, curFood)
+        Q, N = retrieveQandN(curSnakeHead, set(curSnakeBody), curFood)
 
         # Get best action
         def explorationFunc(u,n):
-            return 1 if n < 10 else u
+            return 1 if n < self.Ne else u
         # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax,
         # then invert the resulting arg
-        a = (np.argmax([explorationFunc(curQ[a], curN[a]) for a in (3,2,1,0)]) - 3) * -1
+        a = (np.argmax([explorationFunc(Q[a], N[a]) for a in (3,2,1,0)]) - 3) * -1
 
         # Update N visiting a
-        curN[a] += 1
-        
-        # Get Rewards
+        N[a] += 1
+
+        # Get next state s'
         movementList = [(0,-1),(0,1),(-1,0),(1,0)]
         nextSnakeHead = curSnakeHead[0] + movementList[a][0], curSnakeHead[1] + movementList[a][1]
+        nextSnakeBody = list(curSnakeBody+[nextSnakeHead])
+        del(nextSnakeBody[0])
+
+        # Get Momentary Reward
         def reward(snakeHead, snakeBody, food):
             # hit itself
             if snakeHead in snakeBody:
@@ -119,15 +124,13 @@ class Agent:
                 return 1
             return -0.1
         R = reward(nextSnakeHead, curSnakeBody, curFood)
-
         
         # Get Util of next state
+        Qprime, _ = retrieveQandN(nextSnakeHead, set(nextSnakeBody), curFood)
+        Uprime = max(Qprime)
 
-        if len(curSnakeBody) > 0:
-            exit()
-        if self.step < 66000 + 3:
-            self.step += 1
-            return 0
-        else:
-            self.step += 1
-            return 2
+        # Update
+        Q[a] = Q[a] + (self.C/(self.C * N[a])) * (R + self.gamma * Uprime - Q[a])
+        self.step += 1
+
+        return a
