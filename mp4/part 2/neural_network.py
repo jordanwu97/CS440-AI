@@ -24,6 +24,7 @@ import numpy as np
 def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes, shuffle=True):
 
     #IMPLEMENT HERE
+    Z1, cache = affine_forward(x_train, w1, b1)
 
     return w1, w2, w3, w4, b1, b2, b3, b4, losses
 
@@ -68,16 +69,42 @@ def four_nn():
         This is a great time to review on your linear algebra as well.
 """
 def affine_forward(A, W, b):
+    Z = np.matmul(np.c_[A, np.ones(A.shape[0])], np.r_[W, [b]])
+    cache = A,W
     return Z, cache
 
 def affine_backward(dZ, cache):
+    A,W = cache
+    dA = np.matmul(dZ,np.transpose(W))
+    dW = np.matmul(np.transpose(A), dZ)
+    dB = np.sum(dZ, axis=0)
     return dA, dW, dB
 
 def relu_forward(Z):
+    A = np.array(Z)
+    A[A<0] = 0
+    cache = Z
     return A, cache
 
 def relu_backward(dA, cache):
-    return dA
+    Z = cache
+    dZ = np.where(Z > 0, dA, 0)
+    return dZ
 
 def cross_entropy(F, y):
+    n, num_classes = F.shape
+
+    # calculate Softmax
+    exp_ij = np.exp(F)
+    exp_i = np.sum(exp_ij, axis=1)
+
+    # calculate loss
+    F_iyi = F[np.arange(n), y.astype(int)]
+    loss = np.sum(F_iyi - np.log(exp_i)) / n * -1
+    
+    # calculate dF
+    one_hot = np.zeros(F.shape)
+    one_hot[np.arange(n),y.astype(int)] = 1
+    dF = (one_hot - (exp_ij / exp_i[:,None])) / n * -1
+
     return loss, dF
