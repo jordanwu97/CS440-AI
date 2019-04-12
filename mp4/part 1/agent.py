@@ -120,7 +120,7 @@ class Agent:
                 return -0.1
 
             # Update Q table
-            Q_s[self.a] = Q_s[self.a] + (self.C/(self.C * N_s[self.a])) * (Reward(points,self.points, dead) + self.gamma * max(Q_s_prime) - Q_s[self.a])
+            Q_s[self.a] = Q_s[self.a] + (self.C/(self.C * N_s[self.a])) * (Reward(points,self.points, dead) + self.gamma * np.max(Q_s_prime) - Q_s[self.a])
 
 
         ### Step 2, choose best action for current state
