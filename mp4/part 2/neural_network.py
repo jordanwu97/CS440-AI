@@ -30,9 +30,13 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
 
     for ep in range(epoch):
 
-        randargs = np.random.choice(len(x_train), size=1000, replace=False)
-        x_batch = x_train[randargs]
-        y_batch = y_train[randargs]
+        if shuffle:
+            randargs = np.random.choice(len(x_train), size=1000, replace=False)
+            x_batch = x_train[randargs]
+            y_batch = y_train[randargs]
+        else:
+            x_batch = x_train
+            y_batch = y_train
 
         loss = four_nn(W,B,x_batch,y_batch, num_classes, test=False)
         losses.append(loss)
