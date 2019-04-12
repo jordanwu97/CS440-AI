@@ -16,9 +16,6 @@ class Agent:
         self.Q = utils.create_q_table()
         self.N = utils.create_q_table()
 
-        ## TEMP
-        self.step = 1
-
     def train(self):
         self._train = True
         
@@ -52,15 +49,16 @@ class Agent:
 
         '''
 
-        def to12(x):
-            return (x + 1) // 40
+        # Takes longform state and returns discretized state
+        def discretizeState(state):
 
-        # convert all down to 12x12
-        curSnakeHead = to12(state[0]), to12(state[1])
-        curSnakeBody = [(to12(x), to12(y)) for x,y in state[2]]
-        curFood = to12(state[3]), to12(state[4])
+            def to12(x):
+                return (x + 1) // 40
 
-        def retrieveQandN(snakeHead, snakeBody, food):
+            # convert all down to 12x12
+            snakeHead = to12(state[0]), to12(state[1])
+            snakeBody = [(to12(x), to12(y)) for x,y in state[2]]
+            food = to12(state[3]), to12(state[4])
 
             snakeHeadX, snakeHeadY = snakeHead
             foodX, foodY = food
@@ -87,50 +85,57 @@ class Agent:
             # check if adjoining is snake body
             adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in snakeBody) for offX, offY in ((0,-1),(0,1),(-1,0),(1,0))]
 
-            # retrieve current Q and N
-            tQ = self.Q[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
-            tN = self.N[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]]
+            # return state
+            return adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]
 
-            return tQ, tN
+        # Takes a discretized state tuple and retrieves Q and N as slice
+        def retrieveQandN(discretizedState):
 
-        Q, N = retrieveQandN(curSnakeHead, set(curSnakeBody), curFood)
+            adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody0, adjoiningBody1, adjoiningBody2, adjoiningBody3 = discretizedState
 
-        # Get best action
+            # retrieve current Q and N for given state
+            Qs = self.Q[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody0, adjoiningBody1, adjoiningBody2, adjoiningBody3]
+            Ns = self.N[adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody0, adjoiningBody1, adjoiningBody2, adjoiningBody3]
+
+            return Qs, Ns
+
+        s_prime = discretizeState(state)
+        Q_s_prime, N_s_prime = retrieveQandN(s_prime)
+
+        ### STEP 1, Update Q table using prev state and current state, prev action
+        ### SKIP IF NO PREVIOUS STATE
+        if hasattr(self, "s") and self.s != None:
+            # Update Q table using prev state and current state, prev action
+            Q_s, N_s = retrieveQandN(self.s)
+            # Calculate Reward using current point and previous point, and dead variable
+            def Reward(points_prime, points, dead):
+                # died
+                if dead:
+                    return -1
+                # got food since points increased
+                if points_prime > points:
+                    return 1
+                return -0.1
+
+            # Update Q table
+            Q_s[self.a] = Q_s[self.a] + (self.C/(self.C * N_s[self.a])) * (Reward(points,self.points, dead) + self.gamma * max(Q_s_prime) - Q_s[self.a])
+
+
+        ### Step 2, choose best action for current state
         def explorationFunc(u,n):
             return 1 if n < self.Ne else u
         # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax,
         # then invert the resulting arg
-        a = (np.argmax([explorationFunc(Q[a], N[a]) for a in (3,2,1,0)]) - 3) * -1
+        a_prime = (np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in (3,2,1,0)]) - 3) * -1
 
-        # Update N visiting a
-        N[a] += 1
 
-        # Get next state s'
-        movementList = [(0,-1),(0,1),(-1,0),(1,0)]
-        nextSnakeHead = curSnakeHead[0] + movementList[a][0], curSnakeHead[1] + movementList[a][1]
-        nextSnakeBody = list(curSnakeBody+[nextSnakeHead])
-        del(nextSnakeBody[0])
+        ### STEP 3, Update N table, update class variables
+        N_s_prime[a_prime] += 1
+        if dead:
+            self.reset()
+        else:
+            self.s = s_prime
+            self.a = a_prime
+            self.points = points
 
-        # Get Momentary Reward
-        def reward(snakeHead, snakeBody, food):
-            # hit itself
-            if snakeHead in snakeBody:
-                return -1
-            # hit wall
-            if snakeHead[0] == 0 or snakeHead[0] == 13 or snakeHead[1] == 0 or snakeHead[1] == 13:
-                return -1
-            # gets food
-            if snakeHead == food:
-                return 1
-            return -0.1
-        R = reward(nextSnakeHead, curSnakeBody, curFood)
-        
-        # Get Util of next state
-        Qprime, _ = retrieveQandN(nextSnakeHead, set(nextSnakeBody), curFood)
-        Uprime = max(Qprime)
-
-        # Update
-        Q[a] = Q[a] + (self.C/(self.C * N[a])) * (R + self.gamma * Uprime - Q[a])
-        self.step += 1
-
-        return a
+        return a_prime
