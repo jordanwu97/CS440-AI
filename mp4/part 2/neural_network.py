@@ -24,7 +24,7 @@ import numpy as np
 def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes, shuffle=True):
  
     N = len(x_train)
-    batch_size = 400
+    batch_size = 200
     losses = []
 
     shufflearg = np.arange(N)
