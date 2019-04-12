@@ -16,6 +16,8 @@ class Agent:
         self.Q = utils.create_q_table()
         self.N = utils.create_q_table()
 
+        self.reset()
+
     def train(self):
         self._train = True
         
@@ -104,7 +106,7 @@ class Agent:
 
         ### STEP 1, Update Q table using prev state and current state, prev action
         ### SKIP IF NO PREVIOUS STATE
-        if hasattr(self, "s") and self.s != None:
+        if self.s != None:
             # Update Q table using prev state and current state, prev action
             Q_s, N_s = retrieveQandN(self.s)
             # Calculate Reward using current point and previous point, and dead variable
@@ -124,9 +126,13 @@ class Agent:
         ### Step 2, choose best action for current state
         def explorationFunc(u,n):
             return 1 if n < self.Ne else u
-        # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax,
-        # then invert the resulting arg
+        # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax, then reverse the index
         a_prime = (np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in (3,2,1,0)]) - 3) * -1
+        # print ("array:", [explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in (0,1,2,3)])
+        # print ("aprime", a_prime)
+
+        # if not self._train:
+        #     print (s_prime)
 
 
         ### STEP 3, Update N table, update class variables
