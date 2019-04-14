@@ -27,11 +27,10 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
     batch_size = 200
     losses = []
 
+    # default no shuffle, use arange
     shufflearg = np.arange(N)
 
     for ep in range(epoch):
-
-        # print ("Epoch:", ep)
 
         if shuffle:
             shufflearg = np.random.choice(N, size=N, replace=False)
@@ -50,11 +49,8 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
         
         losses.append(loss)
 
-        # print ("Loss:", loss)
+        print ("Epoch:", ep, "Loss:", loss)
 
-        if ep % 5 == 0:
-            avg, _ = test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes)
-            print ("Epoch:",ep,"Accuracy:", avg)
 
     print (losses)
 
@@ -78,17 +74,17 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
 """
 def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 
-    W = np.array([w1,w2,w3,w4], dtype=object)
-    B = np.array([b1,b2,b3,b4], dtype=object)
-
+    # Get classification
     classification = four_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes, test=True)
 
+    # Get average rate by finding matchings
     avg_class_rate = np.sum(np.equal(classification, y_test)) / len(x_test)
 
+    # Get rate per class by finding matching indexes in y_test, then matching
     class_rate_per_class = [0.0] * num_classes
-
     for c in range(num_classes):
-        class_rate_per_class[c] = np.sum(classification[y_test==c]) / len(y_test==c)
+        argC = np.argwhere(y_test==c)
+        class_rate_per_class[c] = np.sum(np.equal(classification[argC], c)) / len(argC)
 
     return avg_class_rate, class_rate_per_class
 
@@ -100,15 +96,21 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 """
 def four_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes, test=False):
     
-    z1, acache1 = affine_forward(x_train, w1, b1)
-    a1, rcache1 = relu_forward(z1)
-
-    z2, acache2 = affine_forward(a1, w2, b2)
-    a2, rcache2 = relu_forward(z2)
-
-    z3, acache3 = affine_forward(a2, w3, b3)
-    a3, rcache3 = relu_forward(z3)
-
+    def forward(a,w,b):
+        z, acache = affine_forward(a,w,b)
+        a_n, rcache = relu_forward(z)
+        return a_n, acache, rcache
+    
+    def backward(dA, acache, rcache):
+        dZ = relu_backward(dA, rcache)
+        dA_p, dW, dB = affine_backward(dZ, acache)
+        return dA_p, dW, dB
+    
+    # forward prop
+    a1, acache1, rcache1 = forward(x_train, w1, b1)
+    a2, acache2, rcache2 = forward(a1, w2, b2)
+    a3, acache3, rcache3 = forward(a2, w3, b3)
+    # last layer no activation
     F, acache4 = affine_forward(a3, w4, b4)
 
     if test == True:
@@ -117,27 +119,18 @@ def four_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes, test=
     
     loss, dF = cross_entropy(F, y_train)
 
+    # backprop
     dA3, dW4, dB4 = affine_backward(dF, acache4)
+    dA2, dW3, dB3 = backward(dA3, acache3, rcache3)
+    dA1, dW2, dB2 = backward(dA2, acache2, rcache2)
+    dX, dW1, dB1 = backward(dA1, acache1, rcache1)
 
-    dZ3 = relu_backward(dA3, rcache3)
-    dA2, dW3, dB3 = affine_backward(dZ3, acache3)
-
-    dZ2 = relu_backward(dA2, rcache2)
-    dA1, dW2, dB2 = affine_backward(dZ2, acache2)
-
-    dZ1 = relu_backward(dA1, rcache1)
-    dX, dW1, dB1 = affine_backward(dZ1, acache1)
-
+    # Update weights
     eta = 0.1
-    w1 -= eta * dW1
-    w2 -= eta * dW2
-    w3 -= eta * dW3
-    w4 -= eta * dW4
-
-    b1 -= eta * dB1
-    b2 -= eta * dB2
-    b3 -= eta * dB3
-    b4 -= eta * dB4
+    for w, dW in zip((w1,w2,w3,w4),(dW1,dW2,dW3,dW4)):
+        w -= eta * dW
+    for b, dB in zip((b1,b2,b3,b4),(dB1,dB2,dB3,dB4)):
+        b -= eta * dB
 
     return loss
 

@@ -13,7 +13,7 @@ if __name__ == '__main__':
     x_test = (x_test - np.mean(x_test, axis=0))/np.std(x_test, axis=0)
     y_test = np.load("data/y_test.npy")
 
-    load_weights = True #set to True if you want to use saved weights
+    load_weights = False #set to True if you want to use saved weights
 
     if load_weights:
         w1 = np.load('w1.npy')
