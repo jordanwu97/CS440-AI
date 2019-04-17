@@ -106,6 +106,7 @@ class Application:
                     action = self.agent.act(state, points, dead)
                 # for human player
                 else:
+                    print ((state[0] + 1) // 40, (state[1] + 1) // 40)
                     for event in pygame.event.get():
                         if event.type == pygame.KEYDOWN:
                             if event.key == pygame.K_UP:
