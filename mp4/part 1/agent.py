@@ -65,22 +65,15 @@ class Agent:
             snakeHeadX, snakeHeadY = snakeHead
             foodX, foodY = food
 
-            # def checkAdjoining(snake):
-            #     if snake == 1:
-            #         return 1
-            #     elif snake == 12:
-            #         return 2
-            #     return 0
-
-            def checkAdjoining(snake, v1, v2):
-                if snake == v1:
+            def checkAdjoining(snake):
+                if snake == 1:
                     return 1
-                elif snake == v2:
+                elif snake == 12:
                     return 2
                 return 0
 
             # check for adjoining wall, which happens when head is at 1 or 12
-            adjWallX, adjWallY = checkAdjoining(snakeHeadX, 1, 12),checkAdjoining(snakeHeadY, 1, 12)
+            adjWallX, adjWallY = checkAdjoining(snakeHeadX),checkAdjoining(snakeHeadY)
 
             # check where food is
             def checkDir(a):
@@ -92,7 +85,7 @@ class Agent:
             foodDirX, foodDirY = checkDir(foodX - snakeHeadX), checkDir(foodY - snakeHeadY)
             
             # check if adjoining is snake body
-            adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in snakeBody) for offX, offY in ((0,-1),(0,1),(-1,0),(1,0))]
+            adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in snakeBody) for offX, offY in ((0,1),(0,-1),(-1,0),(1,0))]
 
             # return state
             return adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]
@@ -123,32 +116,29 @@ class Agent:
                     return -1
                 # got food since points increased
                 if points_prime > points:
-                    return 1
+                    return points_prime - points
                 return -0.1
 
             # Update Q table
             delta = Reward(points,self.points, dead) + (self.gamma * np.max(Q_s_prime)) - Q_s[self.a]
-            alpha = self.C/(self.C * N_s[self.a])
-            Q_s[self.a] = Q_s[self.a] + alpha * delta
+            alpha = self.C/(self.C + N_s[self.a])
+            Q_s[self.a] = Q_s[self.a] + alpha * delta 
 
-        if dead: # reset if dead
-            self.reset()
-            return 0
-        
+
         ### Step 2, choose best action for current state
         def explorationFunc(u,n):
             return 1 if n < self.Ne else u
-        # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax, then reverse the index
-        tiebreaker = [3,2,1,0]
-        a_prime = tiebreaker[np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in tiebreaker])]
-
-        # if not self._train:
-        #     print (dead,s_prime)
+        # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax, then retrieve the action for that arg
+        tiebreak = [3,2,1,0]
+        a_prime = tiebreak[np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in tiebreak])]
 
         ### STEP 3, Update N table, update class variables
-        N_s_prime[a_prime] += 1
-        self.s = s_prime
-        self.a = a_prime
-        self.points = points
+        if dead: # reset if dead
+            self.reset()
+        else: # only update N if not dead
+            N_s_prime[a_prime] += 1
+            self.s = s_prime
+            self.a = a_prime
+            self.points = points
 
         return a_prime

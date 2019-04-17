@@ -21,6 +21,7 @@ class Application:
         self.show_games()
 
     def train(self):
+        self.agent.save_model(self.args.model_name)
         print("Train Phase:")
         self.agent.train()
         window = self.args.window

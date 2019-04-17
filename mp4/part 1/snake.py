@@ -80,9 +80,9 @@ class SnakeEnv:
         pygame.display.flip()
         if dead:
             # slow clock if dead
-            self.clock.tick(1)
+            self.clock.tick(100)
         else:
-            self.clock.tick(5)
+            self.clock.tick(1000)
 
         return 
 
