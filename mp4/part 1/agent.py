@@ -106,7 +106,7 @@ class Agent:
 
         ### STEP 1, Update Q table using prev state and current state, prev action
         ### SKIP IF NO PREVIOUS STATE
-        if self.s != None:
+        if self.s != None and self._train:
             # Update Q table using prev state and current state, prev action
             Q_s, N_s = retrieveQandN(self.s)
             # Calculate Reward using current point and previous point, and dead variable
@@ -127,7 +127,10 @@ class Agent:
 
         ### Step 2, choose best action for current state
         def explorationFunc(u,n):
-            return 1 if n < self.Ne else u
+            if n < self.Ne and self._train:
+                return 1
+            else:
+                return u
         # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax, then retrieve the action for that arg
         tiebreak = [3,2,1,0]
         a_prime = tiebreak[np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in tiebreak])]
