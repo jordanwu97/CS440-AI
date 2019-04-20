@@ -17,7 +17,7 @@ class Application:
         if not self.args.human:
             if self.args.train_eps != 0:
                 self.train()
-            return self.test()
+            self.test()
         self.show_games()
 
     def train(self):

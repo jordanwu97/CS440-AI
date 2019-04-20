@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 """
     Minigratch Gradient Descent Function to train model
@@ -23,6 +24,7 @@ import numpy as np
 """
 def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_classes, shuffle=True):
  
+    start = time.time()
     N = len(x_train)
     batch_size = 200
     losses = []
@@ -51,8 +53,8 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
 
         print ("Epoch:", ep, "Loss:", loss)
 
-
-    print (losses)
+    end = time.time()
+    print ("Elapsed:", end-start)
 
     return w1, w2, w3, w4, b1, b2, b3, b4, losses
 
@@ -75,16 +77,20 @@ def minibatch_gd(epoch, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, num_cl
 def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
 
     # Get classification
-    classification = four_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes, test=True)
+    y_pred = four_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes, test=True)
 
     # Get average rate by finding matchings
-    avg_class_rate = np.sum(np.equal(classification, y_test)) / len(x_test)
+    avg_class_rate = np.sum(np.equal(y_pred, y_test)) / len(x_test)
+
+    # Plot Confusion:
+    # import plotting
+    # plotting.plot_confusion_matrix(y_test, y_pred)
 
     # Get rate per class by finding matching indexes in y_test, then matching
     class_rate_per_class = [0.0] * num_classes
     for c in range(num_classes):
         argC = np.argwhere(y_test==c)
-        class_rate_per_class[c] = np.sum(np.equal(classification[argC], c)) / len(argC)
+        class_rate_per_class[c] = np.sum(np.equal(y_pred[argC], c)) / len(argC)
 
     return avg_class_rate, class_rate_per_class
 
@@ -159,8 +165,7 @@ def affine_backward(dZ, cache):
 
 def relu_forward(Z):
     cache = Z
-    A = np.array(Z)
-    A[A<0] = 0
+    A = np.where(Z > 0, Z, 0)
     return A, cache
 
 def relu_backward(dA, cache):

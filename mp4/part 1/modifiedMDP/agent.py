@@ -3,6 +3,9 @@ import utils
 import random
 import math
 
+wall = [(0,x) for x in range(0,14)] + [(13,x) for x in range(0,14)] + [(x,0) for x in range(0,14)] + [(x,13) for x in range(0,14)]
+
+wall = set(wall)
 
 class Agent:
     
@@ -65,15 +68,19 @@ class Agent:
             snakeHeadX, snakeHeadY = snakeHead
             foodX, foodY = food
 
-            def checkAdjoining(snake):
-                if snake == 0:
-                    return 1
-                elif snake == 0:
-                    return 2
-                return 0
+            '''
+            Removed for modified MDP
+            # def checkAdjoining(snake):
+            #     if snake == 1:
+            #         return 1
+            #     elif snake == 12:
+            #         return 2
+            #     return 0
 
             # check for adjoining wall, which happens when head is at 1 or 12
-            adjWallX, adjWallY = checkAdjoining(snakeHeadX),checkAdjoining(snakeHeadY)
+            # adjWallX, adjWallY = checkAdjoining(snakeHeadX),checkAdjoining(snakeHeadY)
+            '''
+            adjWallX, adjWallY = 0,0
 
             # check where food is
             def checkDir(a):
@@ -85,7 +92,7 @@ class Agent:
             foodDirX, foodDirY = checkDir(foodX - snakeHeadX), checkDir(foodY - snakeHeadY)
             
             # check if adjoining is snake body
-            adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in snakeBody) for offX, offY in ((0,1),(0,-1),(-1,0),(1,0))]
+            adjoiningBody = [int((snakeHeadX + offX,snakeHeadY + offY) in set(snakeBody) | wall) for offX, offY in ((0,1),(0,-1),(-1,0),(1,0))]
 
             # return state
             return adjWallX, adjWallY, foodDirX, foodDirY, adjoiningBody[0], adjoiningBody[1], adjoiningBody[2], adjoiningBody[3]
@@ -106,14 +113,14 @@ class Agent:
 
         ### STEP 1, Update Q table using prev state and current state, prev action
         ### SKIP IF NO PREVIOUS STATE
-        if self.s != None:
+        if self.s != None and self._train:
             # Update Q table using prev state and current state, prev action
             Q_s, N_s = retrieveQandN(self.s)
             # Calculate Reward using current point and previous point, and dead variable
             def Reward(points_prime, points, dead):
                 # died
                 if dead:
-                    return -1
+                    return -10
                 # got food since points increased
                 if points_prime > points:
                     return points_prime - points
@@ -127,7 +134,10 @@ class Agent:
 
         ### Step 2, choose best action for current state
         def explorationFunc(u,n):
-            return 1 if n < self.Ne else u
+            if n < self.Ne and self._train:
+                return 1
+            else:
+                return u
         # Tiebreak action by right > left > down > up, so we need to reverse Q and N then do argmax, then retrieve the action for that arg
         tiebreak = [3,2,1,0]
         a_prime = tiebreak[np.argmax([explorationFunc(Q_s_prime[a], N_s_prime[a]) for a in tiebreak])]
