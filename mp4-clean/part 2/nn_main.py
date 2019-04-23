@@ -31,28 +31,17 @@ if __name__ == '__main__':
         w3, b3 = init_weights(256, 256)
         w4, b4 = init_weights(256, 10)
 
-    losst = []
-    ept = 0
-    for eps in [10,20,20]:
-        ept += eps
+    w1, w2, w3, w4, b1, b2, b3, b4, losses = minibatch_gd(10, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, 10)
+    np.save('w1', w1)
+    np.save('w2', w2)
+    np.save('w3', w3)
+    np.save('w4', w4)
 
-        w1, w2, w3, w4, b1, b2, b3, b4, losses = minibatch_gd(eps, w1, w2, w3, w4, b1, b2, b3, b4, x_train, y_train, 10)
-        
-        np.save('w1', w1)
-        np.save('w2', w2)
-        np.save('w3', w3)
-        np.save('w4', w4)
+    np.save('b1', b1)
+    np.save('b2', b2)
+    np.save('b3', b3)
+    np.save('b4', b4)
 
-        np.save('b1', b1)
-        np.save('b2', b2)
-        np.save('b3', b3)
-        np.save('b4', b4)
+    avg_class_rate, class_rate_per_class = test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, 10)
 
-        avg_class_rate, class_rate_per_class = test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, 10)
-        losst += losses
-
-        print(f"{ept} Epochs:\nAvg Classification Rate: {avg_class_rate}\nRate Per Class: {class_rate_per_class}")
-
-    import plotting
-    plotting.plot_loss_vs_epoch(losst)
-
+    print(avg_class_rate, class_rate_per_class)

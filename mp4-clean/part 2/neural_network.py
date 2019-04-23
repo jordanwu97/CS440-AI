@@ -83,8 +83,11 @@ def test_nn(w1, w2, w3, w4, b1, b2, b3, b4, x_test, y_test, num_classes):
     avg_class_rate = np.sum(np.equal(y_pred, y_test)) / len(x_test)
 
     # Plot Confusion:
-    import plotting
-    plotting.plot_confusion_matrix(y_test, y_pred)
+    # try:
+    #     import plotting
+    #     plotting.plot_confusion_matrix(y_test, y_pred)
+    # except ImportError:
+    #     pass
 
     # Get rate per class by finding matching indexes in y_test, then matching
     class_rate_per_class = [0.0] * num_classes
